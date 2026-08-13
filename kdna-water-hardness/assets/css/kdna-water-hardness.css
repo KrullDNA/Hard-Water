@@ -1,0 +1,185 @@
+/**
+ * Water Hardness Lookup, front end.
+ *
+ * Deliberately plain. This is structural styling only: enough that the tool is
+ * usable and legible in any theme, and little enough that it does not fight
+ * the theme's own type and colour. The full design control arrives with the
+ * Elementor widget in Stage 6, and every rule here is written so those
+ * controls can override it without a specificity war.
+ *
+ * Nothing depends on Elementor's wrapper markup, so the same stylesheet works
+ * for the shortcode and for the widget under Atomic markup.
+ */
+
+.kdna-wh {
+	--kdna-wh-gap: 0.75em;
+	max-width: 32em;
+}
+
+.kdna-wh *,
+.kdna-wh *::before,
+.kdna-wh *::after {
+	box-sizing: border-box;
+}
+
+/* Form -------------------------------------------------------------------- */
+
+.kdna-wh__form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--kdna-wh-gap);
+	margin: 0;
+}
+
+.kdna-wh__field {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	min-width: 0;
+}
+
+.kdna-wh__label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.35em;
+}
+
+.kdna-wh__input,
+.kdna-wh__select {
+	background: #fff;
+	border: 1px solid currentColor;
+	border-radius: 2px;
+	color: inherit;
+	font: inherit;
+	line-height: 1.4;
+	max-width: 100%;
+	padding: 0.65em 0.8em;
+	width: 100%;
+}
+
+.kdna-wh__input:focus,
+.kdna-wh__select:focus {
+	outline: 2px solid currentColor;
+	outline-offset: 1px;
+}
+
+.kdna-wh__button {
+	background: currentColor;
+	border: 1px solid currentColor;
+	border-radius: 2px;
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+	line-height: 1.4;
+	padding: 0.7em 1.4em;
+	text-align: center;
+}
+
+/*
+ * The label sits inside the button so the button's own colour can be set to a
+ * background without taking the text with it.
+ */
+.kdna-wh__button > span {
+	color: #fff;
+	mix-blend-mode: difference;
+}
+
+.kdna-wh__button:disabled {
+	cursor: progress;
+	opacity: 0.6;
+}
+
+/* Validation -------------------------------------------------------------- */
+
+.kdna-wh__error {
+	font-size: 0.9em;
+	margin: 0.4em 0 0;
+}
+
+.kdna-wh__error[hidden] {
+	display: none;
+}
+
+.kdna-wh--has-error .kdna-wh__input {
+	border-width: 2px;
+}
+
+/* Result ------------------------------------------------------------------ */
+
+.kdna-wh__result {
+	margin-top: 1.25em;
+}
+
+.kdna-wh__result[hidden] {
+	display: none;
+}
+
+.kdna-wh__value {
+	line-height: 1.1;
+	margin: 0 0 0.4em;
+}
+
+.kdna-wh__number {
+	font-size: 2.4em;
+	font-weight: 700;
+}
+
+.kdna-wh__unit {
+	font-size: 1em;
+	opacity: 0.75;
+}
+
+.kdna-wh__note {
+	margin: 0 0 0.5em;
+}
+
+.kdna-wh__meta {
+	font-size: 0.9em;
+	margin: 0 0 0.5em;
+	opacity: 0.8;
+}
+
+.kdna-wh__zones {
+	font-size: 0.9em;
+	list-style: none;
+	margin: 0.75em 0 0;
+	padding: 0;
+}
+
+.kdna-wh__zone {
+	border-top: 1px solid;
+	border-color: color-mix(in srgb, currentColor 20%, transparent);
+	padding: 0.4em 0;
+}
+
+.kdna-wh__zone-name {
+	font-weight: 600;
+}
+
+.kdna-wh__zone-utility,
+.kdna-wh__zone-source {
+	opacity: 0.8;
+}
+
+/* A single zone adds nothing the headline figure has not already said. */
+.kdna-wh__panel--confident .kdna-wh__zones .kdna-wh__zone:only-child .kdna-wh__zone-value {
+	display: none;
+}
+
+/* Wider screens ----------------------------------------------------------- */
+
+@media ( min-width: 480px ) {
+	.kdna-wh__form {
+		align-items: flex-end;
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+
+	.kdna-wh__field--postcode {
+		flex: 1 1 10em;
+	}
+
+	.kdna-wh__field--country {
+		flex: 0 1 12em;
+	}
+}

@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,9 +57,42 @@ Stage 2, complete. CSV import, source registry and data management.
   newest source is more than 18 months old
 * Data browser filterable by country, with deletion by selection or by country
 
-Stages still to come: front-end lookup, results and band copy, geolocation and
-logging, pluggable data sources, the Elementor widget, then caching,
-accessibility and delivery.
+Stage 3, complete. Front-end lookup.
+
+* REST endpoint at /wp-json/kdna-wh/v1/lookup, public and read-only
+* Shortcode [kdna_water_hardness] rendering the form
+* Country selector built from the countries that have data, hidden
+  automatically when only one does
+* Per-country field rules: label, example, validation pattern, maximum length
+  and the keyboard a phone raises, all re-rendered when the country changes
+* Four outcomes handled: a single zone, a range across several zones, a valid
+  postcode we hold nothing for, and a postcode that is not valid for the
+  country
+* Validated in the browser for immediate feedback and again on the server,
+  where the answer counts
+* Vanilla JavaScript, no jQuery, and assets loaded only where the tool appears
+
+Stages still to come: results panel and band copy, geolocation and logging,
+pluggable data sources, the Elementor widget, then caching, accessibility and
+delivery.
+
+== Using the shortcode ==
+
+Put [kdna_water_hardness] on any page.
+
+Attributes, all optional:
+
+* country       Force a starting country, e.g. country="GB". Ignored if that
+                country has no data.
+* show_selector auto by default, which hides the selector when only one
+                country has data. Set yes or no to override.
+* button_text   Defaults to "Check my water".
+* label         Overrides the country's own field label.
+* placeholder   Overrides the country's own example.
+* class         Extra CSS class on the wrapper.
+
+Until data is imported the shortcode renders nothing at all for visitors, and
+a short explanatory note for administrators.
 
 == Importing data ==
 
@@ -70,8 +103,12 @@ Zones need a zone name, a hardness value, a source URL and a publication date.
 Utility name, confidence and country code are optional. A row without a
 traceable source is rejected, because every figure shown to a customer should
 be attributable to a published document. While you are still compiling, there
-is an option to accept those rows anyway; they are stored as estimated, and no
-estimated figure is ever presented as a straight answer on the front end.
+is an option to accept those rows anyway, and they are stored as estimated
+whatever else the file says.
+
+An estimated figure is currently still shown, marked plainly as an estimate
+rather than a published reading. Stage 4 turns that into a proper inconclusive
+result, once the copy exists to explain itself.
 
 Postcode mappings need a postcode and either a zone name or a zone ID. A
 postcode that spans two supply zones gets one row per zone. That is not a
@@ -93,6 +130,9 @@ the band matched and a timestamp. It stores no IP address, no email address and
 no other personal identifier.
 
 == Changelog ==
+
+= 0.3.0 =
+* Stage 3. REST endpoint, shortcode, country selector and front-end lookup.
 
 = 0.2.0 =
 * Stage 2. CSV import, source link registry and data management.
