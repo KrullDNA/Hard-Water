@@ -106,6 +106,10 @@ class KDNA_WH_REST {
 
 		$result['source_summary'] = KDNA_WH_Lookup::source_summary( $result );
 
+		// Logged here rather than inside lookup() so the admin, the importer
+		// or anything else can run a lookup without it counting as a visitor.
+		KDNA_WH_Lookup::record( $result );
+
 		/**
 		 * Filters the lookup result before it is returned.
 		 *

@@ -124,6 +124,8 @@ $kdna_wh_scale  = KDNA_WH_Bands::scale( $kdna_wh_country );
 			</p>
 		</form>
 
+		<?php require KDNA_WH_PATH . 'admin/views/settings-geo.php'; ?>
+
 		<h3><?php esc_html_e( 'When a result is inconclusive', 'kdna-water-hardness' ); ?></h3>
 
 		<p class="kdna-wh-intro">

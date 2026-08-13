@@ -161,11 +161,12 @@ class KDNA_WH_Countries {
 	}
 
 	/**
-	 * Decides which country to show first.
+	 * Decides which country to show first, out of those that hold data.
 	 *
-	 * Geolocation arrives in Stage 5 and will slot in ahead of this. For now
-	 * it is the requested country if it has data, otherwise Australia,
-	 * otherwise whatever is available.
+	 * This is the last word on the question. Geolocation runs ahead of it and
+	 * passes in what it detected, and this is where a detected country with no
+	 * data behind it falls back to Australia rather than showing an empty
+	 * tool.
 	 *
 	 * @param string $requested Preferred country code.
 	 * @return string Country code, or an empty string when nothing has data.

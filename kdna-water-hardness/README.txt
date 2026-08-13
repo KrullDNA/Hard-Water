@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,8 +89,39 @@ Stage 4, complete. Results panel and band copy.
 * An inconclusive result names no band, but still gives the range, the zones
   involved, and the argument that does not depend on the reading
 
-Stages still to come: geolocation and logging, pluggable data sources, the
-Elementor widget, then caching, accessibility and delivery.
+Stage 5, complete. Geolocation and logging.
+
+* Country pre-selected from the visitor's location, resolved in order:
+  Cloudflare's CF-IPCountry header, then a MaxMind GeoLite2 lookup against a
+  local database, then Australia. A detected country holding no data also
+  falls back to Australia, rather than showing an empty tool
+* The MaxMind database is downloaded and refreshed monthly by WP-Cron, and can
+  be updated on demand from the Settings screen
+* Every lookup is logged: country, postcode, the figure served, the band, and
+  the time. No IP address, no email address, nothing identifying a person
+* Lookup Log screen grouped by postcode and band, filterable by country, band,
+  date range and postcode, with a CSV export of exactly what is on screen
+
+Stages still to come: pluggable data sources, the Elementor widget, then
+caching, accessibility and delivery.
+
+== Country pre-selection ==
+
+Water Hardness, Settings, Advanced.
+
+If the site is behind Cloudflare nothing needs setting up: the CF-IPCountry
+header is read and no external call is made. Otherwise a free MaxMind account
+gives a licence key, and the plugin downloads and maintains the GeoLite2
+Country database itself. The file lives in the uploads folder, so it survives
+plugin updates.
+
+Detection is only ever a convenience. Mobile traffic resolves to wherever the
+carrier's gateway sits and a VPN resolves wherever it exits, so the selector
+always stays changeable by hand.
+
+Turn pre-selection off if the site uses full page caching. The first visitor's
+country would otherwise be baked into the cached page for everyone after them,
+which is worse than always starting on the default.
 
 == Bands and copy ==
 
@@ -161,7 +192,18 @@ The lookup log stores a country code, a postcode, the hardness figure served,
 the band matched and a timestamp. It stores no IP address, no email address and
 no other personal identifier.
 
+An IP address is used, in memory, for the geolocation lookup when Cloudflare is
+not supplying the country. It is never written to the database, never logged,
+and never sent anywhere.
+
+Invalid postcodes are not logged at all. A typo is not a place, and there is
+nothing geographic to learn from it.
+
 == Changelog ==
+
+= 0.5.0 =
+* Stage 5. Country pre-selection, the MaxMind updater, lookup logging and the
+  Lookup Log screen with CSV export.
 
 = 0.4.0 =
 * Stage 4. Results panel, band scale, per-country band copy, and the

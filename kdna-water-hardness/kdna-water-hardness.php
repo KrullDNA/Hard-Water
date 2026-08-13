@@ -3,7 +3,7 @@
  * Plugin Name:       Water Hardness Lookup
  * Plugin URI:        https://krulldna.com/
  * Description:       Front-end postcode lookup returning local tap water hardness, a classification band and brand copy. Brand-agnostic and multi-country by data import.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Krull Design & Advertising
@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * KDNA_WH_DB_VERSION Schema version. Bump this whenever a table changes so the
  *                    upgrade routine knows to re-run dbDelta().
  */
-define( 'KDNA_WH_VERSION', '0.4.0' );
+define( 'KDNA_WH_VERSION', '0.5.0' );
 define( 'KDNA_WH_DB_VERSION', '1.0.0' );
 define( 'KDNA_WH_FILE', __FILE__ );
 define( 'KDNA_WH_PATH', plugin_dir_path( __FILE__ ) );
@@ -46,6 +46,7 @@ require_once KDNA_WH_PATH . 'includes/class-kdna-wh-units.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-sources.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-countries.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-bands.php';
+require_once KDNA_WH_PATH . 'includes/class-kdna-wh-geo.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-lookup.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-rest.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-shortcode.php';
@@ -57,6 +58,7 @@ if ( is_admin() ) {
 	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin.php';
 	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin-import.php';
 	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin-settings.php';
+	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin-log.php';
 }
 
 /*
@@ -98,6 +100,9 @@ add_action(
 // The lookup endpoint. Public and read-only.
 add_action( 'rest_api_init', array( 'KDNA_WH_REST', 'register_routes' ) );
 
+// Country detection, and the monthly refresh of its database.
+KDNA_WH_Geo::init();
+
 // The shortcode, and the assets it needs. Registered on every request so the
 // shortcode works wherever it appears, but only enqueued where it renders.
 KDNA_WH_Shortcode::init();
@@ -114,6 +119,7 @@ if ( is_admin() ) {
 
 	KDNA_WH_Admin_Import::init();
 	KDNA_WH_Admin_Settings::init();
+	KDNA_WH_Admin_Log::init();
 }
 
 /**

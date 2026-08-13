@@ -412,6 +412,54 @@ class KDNA_WH_Lookup {
 	}
 
 	/**
+	 * Records a lookup.
+	 *
+	 * What goes in is a country, a postcode, the figure served and the band it
+	 * fell in. What does not go in is an IP address, an email address, or
+	 * anything else identifying a person. Postcode plus timestamp is enough
+	 * for the geographic picture the log exists to give, and keeps the plugin
+	 * clear of handling personal data at all.
+	 *
+	 * @param array $result A result from lookup().
+	 * @return void
+	 */
+	public static function record( array $result ) {
+		/**
+		 * Filters whether lookups are logged.
+		 *
+		 * @param bool  $enabled Whether to log.
+		 * @param array $result  The result about to be logged.
+		 */
+		if ( ! apply_filters( 'kdna_wh_log_lookups', true, $result ) ) {
+			return;
+		}
+
+		// An invalid postcode is a typo, not a place. There is nothing
+		// geographic to learn from it and no postcode worth storing.
+		if ( self::STATE_INVALID === $result['state'] ) {
+			return;
+		}
+
+		if ( empty( $result['postcode'] ) ) {
+			return;
+		}
+
+		/*
+		 * The band is stored as served. For an inconclusive or unmatched
+		 * lookup the state is stored in its place, so the log can show how
+		 * often the tool could not answer, which is worth knowing.
+		 */
+		$band = $result['band_key'] ? $result['band_key'] : $result['state'];
+
+		KDNA_WH_DB::log_lookup(
+			$result['country'],
+			$result['postcode'],
+			isset( $result['value'] ) ? $result['value'] : null,
+			$band
+		);
+	}
+
+	/**
 	 * A short description of where a figure came from, for the line under the
 	 * result. Naming the supply zone is itself a credibility signal, so it is
 	 * used wherever there is one to name.

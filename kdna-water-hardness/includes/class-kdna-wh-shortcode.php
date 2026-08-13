@@ -175,8 +175,16 @@ class KDNA_WH_Shortcode {
 		self::enqueue_assets();
 		self::$instance++;
 
-		$default = KDNA_WH_Countries::default_country( $atts['country'] );
-		$config  = KDNA_WH_Countries::get( $default );
+		/*
+		 * A country named on the shortcode is a deliberate choice by whoever
+		 * built the page, so it wins over detection. Otherwise the visitor's
+		 * own country is used, falling back to Australia.
+		 */
+		$default = $atts['country']
+			? KDNA_WH_Countries::default_country( $atts['country'] )
+			: KDNA_WH_Geo::detect_country();
+
+		$config = KDNA_WH_Countries::get( $default );
 
 		// One country needs no selector: hide it and assume that country.
 		$show_selector = 'auto' === $atts['show_selector']

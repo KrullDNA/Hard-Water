@@ -963,6 +963,247 @@ class KDNA_WH_DB {
 		return self::count_rows( self::lookups_table(), $country_code );
 	}
 
+	/**
+	 * Builds the shared WHERE clause for the log queries.
+	 *
+	 * @param array $args Filters.
+	 * @return array The clause and its parameters.
+	 */
+	private static function lookup_filters( array $args ) {
+		$where  = array( '1=1' );
+		$params = array();
+
+		if ( ! empty( $args['country_code'] ) ) {
+			$where[]  = 'country_code = %s';
+			$params[] = self::normalise_country( $args['country_code'] );
+		}
+
+		if ( ! empty( $args['band'] ) ) {
+			$where[]  = 'band = %s';
+			$params[] = substr( (string) $args['band'], 0, 32 );
+		}
+
+		if ( ! empty( $args['search'] ) ) {
+			global $wpdb;
+			$where[]  = 'postcode LIKE %s';
+			$params[] = $wpdb->esc_like( self::normalise_postcode( $args['search'] ) ) . '%';
+		}
+
+		if ( ! empty( $args['date_from'] ) ) {
+			$where[]  = 'created_at >= %s';
+			$params[] = gmdate( 'Y-m-d 00:00:00', strtotime( $args['date_from'] ) );
+		}
+
+		if ( ! empty( $args['date_to'] ) ) {
+			$where[]  = 'created_at <= %s';
+			$params[] = gmdate( 'Y-m-d 23:59:59', strtotime( $args['date_to'] ) );
+		}
+
+		return array( implode( ' AND ', $where ), $params );
+	}
+
+	/**
+	 * The lookup log grouped by postcode and band.
+	 *
+	 * This is the shape the log is actually useful in. A raw list of every
+	 * lookup answers nothing; counts per postcode show where the hard-water
+	 * customers are, which is what the geographic targeting is for.
+	 *
+	 * @param array $args {
+	 *     @type string $country_code Restrict to one country.
+	 *     @type string $band         Restrict to one band.
+	 *     @type string $search       Postcode prefix.
+	 *     @type string $date_from    Y-m-d, inclusive.
+	 *     @type string $date_to      Y-m-d, inclusive.
+	 *     @type string $orderby      lookups, postcode or last_seen.
+	 *     @type int    $limit        Default 50. Zero for no limit.
+	 *     @type int    $offset       Default 0.
+	 * }
+	 * @return array
+	 */
+	public static function get_lookup_aggregate( array $args = array() ) {
+		global $wpdb;
+
+		$args = wp_parse_args(
+			$args,
+			array(
+				'orderby' => 'lookups',
+				'limit'   => 50,
+				'offset'  => 0,
+			)
+		);
+
+		list( $where, $params ) = self::lookup_filters( $args );
+
+		$table = self::lookups_table();
+
+		// Only a fixed set of orderings is allowed, because a column name
+		// cannot be a bound parameter.
+		$orderings = array(
+			'lookups'   => 'lookups DESC, postcode ASC',
+			'postcode'  => 'postcode ASC',
+			'last_seen' => 'last_seen DESC',
+			'hardness'  => 'avg_hardness DESC',
+		);
+
+		$order = isset( $orderings[ $args['orderby'] ] ) ? $orderings[ $args['orderby'] ] : $orderings['lookups'];
+
+		$sql = "SELECT country_code, postcode, band,
+				COUNT(*) AS lookups,
+				AVG(hardness_caco3) AS avg_hardness,
+				MIN(created_at) AS first_seen,
+				MAX(created_at) AS last_seen
+			FROM {$table}
+			WHERE {$where}
+			GROUP BY country_code, postcode, band
+			ORDER BY {$order}";
+
+		$limit = absint( $args['limit'] );
+
+		if ( $limit ) {
+			$sql     .= ' LIMIT %d OFFSET %d';
+			$params[] = $limit;
+			$params[] = absint( $args['offset'] );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		$rows = $params ? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map(
+			function ( $row ) {
+				$row['lookups']      = (int) $row['lookups'];
+				$row['avg_hardness'] = null === $row['avg_hardness'] ? null : round( (float) $row['avg_hardness'], 2 );
+				return $row;
+			},
+			(array) $rows
+		);
+	}
+
+	/**
+	 * How many postcode and band groups match, for paging the log.
+	 *
+	 * @param array $args Same filters as get_lookup_aggregate().
+	 * @return int
+	 */
+	public static function count_lookup_aggregate( array $args = array() ) {
+		global $wpdb;
+
+		list( $where, $params ) = self::lookup_filters( $args );
+
+		$table = self::lookups_table();
+
+		$sql = "SELECT COUNT(*) FROM (
+				SELECT 1 FROM {$table} WHERE {$where}
+				GROUP BY country_code, postcode, band
+			) AS grouped";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		return (int) ( $params ? $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) : $wpdb->get_var( $sql ) );
+	}
+
+	/**
+	 * Totals per band, for the summary across the top of the log.
+	 *
+	 * @param array $args Same filters as get_lookup_aggregate().
+	 * @return array
+	 */
+	public static function get_band_totals( array $args = array() ) {
+		global $wpdb;
+
+		list( $where, $params ) = self::lookup_filters( $args );
+
+		$table = self::lookups_table();
+
+		$sql = "SELECT band, COUNT(*) AS lookups
+			FROM {$table}
+			WHERE {$where}
+			GROUP BY band
+			ORDER BY lookups DESC";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		$rows = $params ? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map(
+			function ( $row ) {
+				$row['lookups'] = (int) $row['lookups'];
+				return $row;
+			},
+			(array) $rows
+		);
+	}
+
+	/**
+	 * Counts the lookups matching the filters.
+	 *
+	 * @param array $args Same filters as get_lookup_aggregate().
+	 * @return int
+	 */
+	public static function count_lookups_filtered( array $args = array() ) {
+		global $wpdb;
+
+		list( $where, $params ) = self::lookup_filters( $args );
+
+		$table = self::lookups_table();
+		$sql   = "SELECT COUNT(*) FROM {$table} WHERE {$where}";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		return (int) ( $params ? $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) : $wpdb->get_var( $sql ) );
+	}
+
+	/**
+	 * The first and last dates in the log, to frame the date filters.
+	 *
+	 * @return array First and last, as Y-m-d H:i:s or empty strings.
+	 */
+	public static function get_lookup_date_range() {
+		global $wpdb;
+
+		$table = self::lookups_table();
+
+		if ( ! self::table_exists( $table ) ) {
+			return array(
+				'first' => '',
+				'last'  => '',
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- no user input.
+		$row = $wpdb->get_row( "SELECT MIN(created_at) AS first, MAX(created_at) AS last FROM {$table}", ARRAY_A );
+
+		return array(
+			'first' => isset( $row['first'] ) ? (string) $row['first'] : '',
+			'last'  => isset( $row['last'] ) ? (string) $row['last'] : '',
+		);
+	}
+
+	/**
+	 * Empties the log, either entirely or up to a date.
+	 *
+	 * @param string $before Optional Y-m-d. Everything before it goes.
+	 * @return int Rows removed.
+	 */
+	public static function delete_lookups( $before = '' ) {
+		global $wpdb;
+
+		$table = self::lookups_table();
+
+		if ( $before ) {
+			$timestamp = strtotime( $before );
+
+			if ( ! $timestamp ) {
+				return 0;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is internal.
+			$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", gmdate( 'Y-m-d 00:00:00', $timestamp ) ) );
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- no user input.
+			$deleted = $wpdb->query( "DELETE FROM {$table}" );
+		}
+
+		return false === $deleted ? 0 : (int) $deleted;
+	}
+
 	/*
 	 * -----------------------------------------------------------------------
 	 * Shared helpers

@@ -62,6 +62,28 @@ class KDNA_WH_Admin {
 			self::MENU_SLUG . '-import',
 			array( __CLASS__, 'render_import_page' )
 		);
+
+		add_submenu_page(
+			self::MENU_SLUG,
+			__( 'Water Hardness Lookup Log', 'kdna-water-hardness' ),
+			__( 'Lookup Log', 'kdna-water-hardness' ),
+			self::CAPABILITY,
+			self::MENU_SLUG . '-log',
+			array( __CLASS__, 'render_log_page' )
+		);
+	}
+
+	/**
+	 * Loads the Lookup Log view.
+	 *
+	 * @return void
+	 */
+	public static function render_log_page() {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'kdna-water-hardness' ) );
+		}
+
+		require KDNA_WH_PATH . 'admin/views/log.php';
 	}
 
 	/**

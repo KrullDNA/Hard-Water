@@ -39,6 +39,16 @@ class KDNA_WH_Activator {
 		if ( ! wp_next_scheduled( 'kdna_wh_cleanup_imports' ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'kdna_wh_cleanup_imports' );
 		}
+
+		/*
+		 * The geolocation refresh is only scheduled once a licence key exists.
+		 * Scheduling it now would mean a monthly job that can only ever fail.
+		 */
+		$geo = KDNA_WH_Geo::get_settings();
+
+		if ( '' !== trim( (string) $geo['licence_key'] ) ) {
+			KDNA_WH_Geo::schedule();
+		}
 	}
 
 	/**
@@ -56,6 +66,8 @@ class KDNA_WH_Activator {
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, 'kdna_wh_cleanup_imports' );
 		}
+
+		KDNA_WH_Geo::unschedule();
 	}
 
 	/**
