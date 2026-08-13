@@ -383,7 +383,13 @@
 				return '';
 			}
 
-			return ' style="background-color:' + escapeHtml( result.band.colour ) + '"';
+			/*
+			 * A custom property rather than a background directly. An inline
+			 * background would beat any stylesheet, including the colours a
+			 * designer sets in Elementor, and only !important could win it
+			 * back. A property leaves the cascade intact.
+			 */
+			return ' style="--kdna-wh-band-colour:' + escapeHtml( result.band.colour ) + '"';
 		}
 
 		/**
@@ -406,8 +412,8 @@
 			result.bands.forEach( function ( band ) {
 				var colour = /^#[0-9a-f]{3,8}$/i.test( band.colour ) ? band.colour : '#cccccc';
 
-				html += '<span class="kdna-wh__scale-band" title="' + escapeHtml( band.label ) + '"' +
-					' style="width:' + parseFloat( band.width ) + '%;background-color:' + escapeHtml( colour ) + '"></span>';
+				html += '<span class="kdna-wh__scale-band" data-band="' + escapeHtml( band.key ) + '" title="' + escapeHtml( band.label ) + '"' +
+					' style="width:' + parseFloat( band.width ) + '%;--kdna-wh-band-colour:' + escapeHtml( colour ) + '"></span>';
 			} );
 
 			var from = Math.max( 0, Math.min( 100, parseFloat( result.min_position ) ) );
@@ -424,7 +430,7 @@
 			html += '<ul class="kdna-wh__scale-labels">';
 
 			result.bands.forEach( function ( band ) {
-				html += '<li style="width:' + parseFloat( band.width ) + '%">' + escapeHtml( band.label ) + '</li>';
+				html += '<li data-band="' + escapeHtml( band.key ) + '" style="width:' + parseFloat( band.width ) + '%">' + escapeHtml( band.label ) + '</li>';
 			} );
 
 			html += '</ul></div>';

@@ -29,6 +29,51 @@
 	flex-direction: column;
 	gap: var(--kdna-wh-gap);
 	margin: 0;
+	position: relative;
+}
+
+/* Loading state ----------------------------------------------------------- */
+
+/*
+ * Both of these are decorative and hidden from assistive technology. A screen
+ * reader is told about the wait by the button's own busy state, which is the
+ * part that actually carries meaning.
+ */
+.kdna-wh__overlay {
+	background: var( --kdna-wh-overlay, rgba( 255, 255, 255, 0.6 ) );
+	display: none;
+	inset: 0;
+	position: absolute;
+}
+
+.kdna-wh--busy .kdna-wh__overlay {
+	display: block;
+}
+
+.kdna-wh__spinner {
+	border: 2px solid currentColor;
+	border-radius: 50%;
+	border-right-color: transparent;
+	display: none;
+	height: 1em;
+	width: 1em;
+}
+
+.kdna-wh--busy .kdna-wh__spinner {
+	animation: kdna-wh-spin 0.7s linear infinite;
+	display: inline-block;
+}
+
+@keyframes kdna-wh-spin {
+	to {
+		transform: rotate( 360deg );
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.kdna-wh--busy .kdna-wh__spinner {
+		animation-duration: 2s;
+	}
 }
 
 .kdna-wh__field {
@@ -160,7 +205,13 @@
 	margin: 0 0 0.75em;
 }
 
+/*
+ * The colour comes from a custom property the script sets, rather than an
+ * inline background. That leaves a stylesheet, and the Elementor controls,
+ * able to override it in the ordinary way.
+ */
 .kdna-wh__band-label {
+	background-color: var( --kdna-wh-band-colour, transparent );
 	border-radius: 2px;
 	display: inline-block;
 	font-size: 0.85em;
@@ -186,6 +237,7 @@
 }
 
 .kdna-wh__scale-band {
+	background-color: var( --kdna-wh-band-colour, #cccccc );
 	display: block;
 	height: 100%;
 }
@@ -317,5 +369,68 @@
 
 	.kdna-wh__field--country {
 		flex: 0 1 12em;
+	}
+}
+
+
+/* Message states ---------------------------------------------------------- */
+
+/*
+ * Each state carries a different weight, so each gets its own accent that can
+ * be coloured independently. The marker is a plain shape rather than an icon
+ * file, so nothing extra has to load and the colour is a single property.
+ */
+.kdna-wh__panel--inconclusive,
+.kdna-wh__panel--no_match {
+	border-left: 3px solid var( --kdna-wh-accent, currentColor );
+	padding-left: 1em;
+}
+
+.kdna-wh__note::before {
+	background: var( --kdna-wh-accent, currentColor );
+	border-radius: 50%;
+	content: "";
+	display: inline-block;
+	height: 0.5em;
+	margin-right: 0.5em;
+	vertical-align: 0.1em;
+	width: 0.5em;
+}
+
+.kdna-wh--has-error .kdna-wh__error {
+	color: var( --kdna-wh-error-colour, inherit );
+}
+
+/* Results entry animation ------------------------------------------------- */
+
+/*
+ * The class sits on Elementor's own element wrapper, put there by the control's
+ * prefix_class, so the rule reaches down to the panel from there.
+ */
+.kdna-wh-animate-fade .kdna-wh__result:not( [hidden] ) {
+	animation: kdna-wh-fade var( --kdna-wh-animation-duration, 0.3s ) ease both;
+}
+
+.kdna-wh-animate-slide .kdna-wh__result:not( [hidden] ) {
+	animation: kdna-wh-slide var( --kdna-wh-animation-duration, 0.3s ) ease both;
+}
+
+@keyframes kdna-wh-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes kdna-wh-slide {
+	from {
+		opacity: 0;
+		transform: translateY( 0.5em );
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.kdna-wh-animate-fade .kdna-wh__result:not( [hidden] ),
+	.kdna-wh-animate-slide .kdna-wh__result:not( [hidden] ) {
+		animation: none;
 	}
 }

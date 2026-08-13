@@ -355,6 +355,8 @@ class KDNA_WH_Shortcode {
 							<span class="kdna-wh__icon kdna-wh__icon--before" aria-hidden="true"><?php echo wp_kses( $icon, self::icon_tags() ); ?></span>
 						<?php endif; ?>
 
+						<span class="kdna-wh__spinner" aria-hidden="true"></span>
+
 						<span data-kdna-wh-button-text><?php echo esc_html( $button ); ?></span>
 
 						<?php if ( $icon && 'after' === $args['icon_position'] ) : ?>
@@ -362,6 +364,15 @@ class KDNA_WH_Shortcode {
 						<?php endif; ?>
 					</button>
 				</div>
+
+				<?php
+				/*
+				 * Covers the form while a lookup runs. Purely decorative, and
+				 * hidden from assistive technology, which is told about the
+				 * wait by the button's own busy state instead.
+				 */
+				?>
+				<span class="kdna-wh__overlay" aria-hidden="true"></span>
 
 			</form>
 
