@@ -1,0 +1,125 @@
+/**
+ * Widget-scoped styles.
+ *
+ * Only what the layout controls need. Everything shared with the shortcode
+ * lives in the front-end stylesheet, which this one depends on.
+ *
+ * Every selector targets the plugin's own classes or Elementor's widget
+ * wrapper class. Nothing targets .elementor-widget-container, because under
+ * Atomic markup that element is not there, and a style written against it
+ * would silently stop applying the moment the experiment is switched on.
+ */
+
+/* Form layout ------------------------------------------------------------- */
+
+.kdna-wh-layout-stacked .kdna-wh__form {
+	align-items: stretch;
+	flex-direction: column;
+}
+
+.kdna-wh-layout-inline .kdna-wh__form {
+	align-items: flex-end;
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.kdna-wh-layout-inline .kdna-wh__field--postcode {
+	flex: 1 1 10em;
+}
+
+.kdna-wh-layout-inline .kdna-wh__field--country {
+	flex: 0 1 12em;
+}
+
+/*
+ * A stacked form's fields should fill the width rather than sitting at their
+ * intrinsic size, whatever the container is doing.
+ */
+.kdna-wh-layout-stacked .kdna-wh__field {
+	flex: 1 1 auto;
+	width: 100%;
+}
+
+/* Full width button ------------------------------------------------------- */
+
+.kdna-wh-button-full-yes .kdna-wh__field--submit {
+	flex: 1 1 100%;
+	width: 100%;
+}
+
+.kdna-wh-button-full-yes .kdna-wh__button {
+	width: 100%;
+}
+
+/* Icons ------------------------------------------------------------------- */
+
+.kdna-wh__button {
+	align-items: center;
+	display: inline-flex;
+	gap: 0.5em;
+	justify-content: center;
+}
+
+.kdna-wh__icon {
+	display: inline-flex;
+	line-height: 0;
+}
+
+.kdna-wh__icon svg {
+	height: 1em;
+	width: 1em;
+	fill: currentColor;
+}
+
+/* Help text --------------------------------------------------------------- */
+
+.kdna-wh__help {
+	font-size: 0.9em;
+	margin: 0.4em 0 0;
+	opacity: 0.8;
+}
+
+/*
+ * Alignment is applied to the wrapper by a control, so the result panel and
+ * the scale labels need to follow it rather than staying left.
+ */
+.kdna-wh__scale-labels {
+	justify-content: space-between;
+}
+
+/*
+ * The visually hidden label. The field must always have one for a screen
+ * reader even when the design does not show it, so hiding it moves it out of
+ * view rather than removing it.
+ */
+.kdna-wh__label.screen-reader-text {
+	border: 0;
+	clip: rect( 1px, 1px, 1px, 1px );
+	clip-path: inset( 50% );
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+	word-wrap: normal !important;
+}
+
+/* Editor preview ---------------------------------------------------------- */
+
+/*
+ * A hint that what is on screen is a sample, shown only inside the editor.
+ * The class is added by the script, which only ever receives a preview state
+ * in the editor.
+ */
+.kdna-wh--preview .kdna-wh__result::before {
+	background: rgba( 0, 0, 0, 0.06 );
+	border-radius: 2px;
+	content: attr( data-kdna-wh-preview-label );
+	display: inline-block;
+	font-size: 11px;
+	letter-spacing: 0.04em;
+	margin-bottom: 0.6em;
+	padding: 0.2em 0.6em;
+	text-transform: uppercase;
+}

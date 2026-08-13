@@ -418,6 +418,82 @@ class KDNA_WH_Lookup {
 	}
 
 	/**
+	 * Builds a realistic result for the Elementor editor to render.
+	 *
+	 * Without this, styling the results panel means finding a postcode that
+	 * happens to produce the state you are trying to style, and there may not
+	 * be one in the data at all for an error or an inconclusive answer.
+	 *
+	 * It uses the country's real bands and real copy, so what the designer
+	 * styles is what a visitor will actually see. It is only ever called from
+	 * the editor.
+	 *
+	 * @param string $state   One of the state constants.
+	 * @param string $country ISO country code.
+	 * @return array A result in the same shape lookup() returns.
+	 */
+	public static function sample_result( $state, $country ) {
+		$country = KDNA_WH_DB::normalise_country( $country );
+		$scale   = KDNA_WH_Bands::scale( $country );
+
+		// A band around the middle of the scale gives the most representative
+		// picture: a marker with something either side of it.
+		$index  = (int) floor( max( 0, count( $scale ) - 1 ) / 2 );
+		$band   = isset( $scale[ $index ] ) ? $scale[ $index ] : reset( $scale );
+		$sample = $band ? round( $band['min'] + ( ( $band['max'] - $band['min'] ) * 0.6 ) ) : 96;
+
+		$zone = array(
+			'zone_id'        => 0,
+			'country_code'   => $country,
+			'zone_name'      => __( 'Example Zone', 'kdna-water-hardness' ),
+			'utility_name'   => __( 'Example Water Authority', 'kdna-water-hardness' ),
+			'hardness_caco3' => (float) $sample,
+			'confidence'     => 'verified',
+			'source_url'     => 'https://example.org/water-quality-report.pdf',
+			'source_date'    => gmdate( 'Y-m-d', strtotime( '-6 months' ) ),
+		);
+
+		switch ( $state ) {
+			case self::STATE_RANGE:
+				$low  = $zone;
+				$high = $zone;
+
+				$low['zone_name']       = __( 'Example Zone North', 'kdna-water-hardness' );
+				$high['zone_name']      = __( 'Example Zone South', 'kdna-water-hardness' );
+				$low['hardness_caco3']  = (float) max( $band['min'], $sample - 15 );
+				$high['hardness_caco3'] = (float) min( $band['max'] - 1, $sample + 15 );
+
+				return self::build_result( self::STATE_RANGE, $country, '0000', array( $low, $high ) );
+
+			case self::STATE_INCONCLUSIVE:
+				// Two zones far enough apart to fall in different bands, which
+				// is the commonest reason for this state.
+				$low  = $zone;
+				$high = $zone;
+
+				$low['zone_name']       = __( 'Example Zone North', 'kdna-water-hardness' );
+				$high['zone_name']      = __( 'Example Zone South', 'kdna-water-hardness' );
+				$low['hardness_caco3']  = (float) ( isset( $scale[0] ) ? $scale[0]['min'] + 5 : 20 );
+				$last                   = end( $scale );
+				$high['hardness_caco3'] = (float) ( $last ? $last['min'] + 40 : 220 );
+
+				return self::build_result( self::STATE_INCONCLUSIVE, $country, '0000', array( $low, $high ) );
+
+			case self::STATE_NO_MATCH:
+				return self::build_result(
+					self::STATE_NO_MATCH,
+					$country,
+					'0000',
+					array(),
+					__( 'We do not have a reading for that postcode yet. Your water utility publishes hardness figures for your area and can tell you exactly.', 'kdna-water-hardness' )
+				);
+
+			default:
+				return self::build_result( self::STATE_CONFIDENT, $country, '0000', array( $zone ) );
+		}
+	}
+
+	/**
 	 * Records a lookup.
 	 *
 	 * What goes in is a country, a postcode, the figure served and the band it

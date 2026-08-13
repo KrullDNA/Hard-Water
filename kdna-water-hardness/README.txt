@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.5.1
+Stable tag: 0.6.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -116,8 +116,36 @@ Stage 5b, complete. Pluggable data sources.
   silently. The visitor never sees a third party's error, and the reason is
   recorded in the admin instead
 
-Stages still to come: the Elementor widget, then caching, accessibility and
-delivery.
+Stage 6a, complete. The Elementor widget and its content controls.
+
+* Registered in its own KDNA Tools category, built for Elementor's Atomic
+  markup: no inner wrapper under the optimized markup experiment, one wrapper
+  div in the output, and no styling anywhere that depends on
+  .elementor-widget-container
+* Six content sections: Layout, Country selector, Postcode field, Submit
+  button, Results display, and Copy overrides
+* A preview state control that draws a sample result in the editor, so every
+  state can be styled without hunting for a postcode that produces one. It
+  has no effect on the live page
+* The widget and the shortcode render through one function, so the markup,
+  the stylesheet and the script cannot drift apart
+
+Stages still to come: the widget's style controls, then caching, accessibility
+and delivery.
+
+== The Elementor widget ==
+
+Find it under KDNA Tools in the widget panel.
+
+Elementor is not required. The shortcode works without it, and nothing in the
+plugin loads Elementor code unless Elementor is active. The widget needs
+Elementor 3.16 or later, which is where the method that switches off the inner
+wrapper arrived.
+
+The copy overrides in the widget are for one placement only. Anything left
+empty falls back to the copy under Water Hardness, Settings, which is where
+the wording for the whole site belongs. Use the overrides to give a landing
+page its own angle without duplicating everything.
 
 == Using an API for a country ==
 
@@ -236,6 +264,10 @@ Invalid postcodes are not logged at all. A typo is not a place, and there is
 nothing geographic to learn from it.
 
 == Changelog ==
+
+= 0.6.0 =
+* Stage 6a. Elementor widget, KDNA Tools category, six content sections and
+  the editor preview state.
 
 = 0.5.1 =
 * Stage 5b. Source adapter layer, per-country API configuration, response

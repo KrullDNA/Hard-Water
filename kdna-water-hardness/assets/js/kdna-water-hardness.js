@@ -34,6 +34,30 @@
 	 * @param {Element} root The wrapper element.
 	 */
 	function setup( root ) {
+		/*
+		 * Per-instance settings, from the wrapper rather than the shared
+		 * localised object, because two of these on one page have two sets of
+		 * settings and a global can only hold one.
+		 */
+		var config = {};
+
+		try {
+			config = JSON.parse( root.getAttribute( 'data-kdna-wh-config' ) || '{}' ) || {};
+		} catch ( e ) {
+			config = {};
+		}
+
+		/**
+		 * Whether a display option is on. Everything defaults to shown, so a
+		 * shortcode with no config behaves as it always has.
+		 *
+		 * @param {string} key Option name.
+		 * @return {boolean} True unless explicitly switched off.
+		 */
+		function shows( key ) {
+			return config[ key ] !== false;
+		}
+
 		var form = root.querySelector( 'form' );
 		var countryField = root.querySelector( '[data-kdna-wh-country]' );
 		var input = root.querySelector( '[data-kdna-wh-input]' );
@@ -166,8 +190,10 @@
 				button.setAttribute( 'aria-busy', state ? 'true' : 'false' );
 			}
 
-			if ( buttonText && strings.loading ) {
-				buttonText.textContent = state ? strings.loading : originalButtonText;
+			var loading = config.loading || strings.loading;
+
+			if ( buttonText && loading ) {
+				buttonText.textContent = state ? loading : originalButtonText;
 			}
 		}
 
@@ -192,17 +218,17 @@
 
 			setError( '' );
 
-			var copy = result.copy || {};
+			var copy = mergeCopy( result );
 			var html = '<div class="kdna-wh__panel kdna-wh__panel--' + escapeHtml( result.state ) + '">';
 
 			// The figure, unless there is nothing to show one for.
-			if ( result.value_display ) {
+			if ( result.value_display && shows( 'showValue' ) ) {
 				html += '<p class="kdna-wh__value">' +
 					'<span class="kdna-wh__number">' + escapeHtml( result.value_display ) + '</span>';
 
 				// A range already carries its unit inside the phrase.
 				if ( result.value !== null ) {
-					html += ' <span class="kdna-wh__unit">' + escapeHtml( result.unit_label ) + '</span>';
+					html += ' <span class="kdna-wh__unit">' + escapeHtml( unitLabel( result ) ) + '</span>';
 				}
 
 				html += '</p>';
@@ -215,7 +241,9 @@
 					'</span></p>';
 			}
 
-			html += renderScale( result );
+			if ( shows( 'showScale' ) ) {
+				html += renderScale( result );
+			}
 
 			// Why this result cannot be given as one figure. Specific to the
 			// lookup, and sits above the editable copy.
@@ -253,7 +281,7 @@
 					escapeHtml( copy.cta_text ) + '</a></p>';
 			}
 
-			if ( result.source_summary ) {
+			if ( result.source_summary && shows( 'showZoneName' ) ) {
 				html += '<p class="kdna-wh__meta">' + escapeHtml( result.source_summary ) + '</p>';
 			}
 
@@ -262,6 +290,86 @@
 
 			resultEl.innerHTML = html;
 			resultEl.hidden = false;
+
+			// Replacing the form suits a landing page, where the answer is the
+			// whole point of the page.
+			if ( config.replace ) {
+				form.hidden = true;
+			}
+		}
+
+		/**
+		 * Draws the sample result the Elementor editor asked for.
+		 *
+		 * The preview data only ever reaches the browser inside the editor:
+		 * the server does not put it on the page anywhere else, so there is
+		 * nothing here a visitor can trigger.
+		 */
+		function renderPreview() {
+			if ( ! config.preview || 'form' === config.preview ) {
+				return;
+			}
+
+			root.classList.add( 'kdna-wh--preview' );
+
+			if ( resultEl ) {
+				resultEl.setAttribute( 'data-kdna-wh-preview-label', config.preview );
+			}
+
+			if ( config.previewError ) {
+				setError( config.previewError );
+				return;
+			}
+
+			if ( config.previewResult ) {
+				render( config.previewResult );
+			}
+		}
+
+		/**
+		 * The copy for this result, with any per-placement override applied.
+		 *
+		 * An override left empty in the editor is not an override: the copy
+		 * set in the plugin's settings shows through.
+		 *
+		 * @param {Object} result The response from the endpoint.
+		 * @return {Object} Heading, body and call to action.
+		 */
+		function mergeCopy( result ) {
+			var copy = {};
+			var base = result.copy || {};
+			var key;
+
+			for ( key in base ) {
+				if ( Object.prototype.hasOwnProperty.call( base, key ) ) {
+					copy[ key ] = base[ key ];
+				}
+			}
+
+			var overrides = config.copy || {};
+			var mine = overrides[ result.band_key ] || overrides[ result.state ];
+
+			if ( mine ) {
+				if ( mine.heading ) {
+					copy.heading = mine.heading;
+				}
+
+				if ( mine.body ) {
+					copy.body = mine.body;
+				}
+			}
+
+			return copy;
+		}
+
+		/**
+		 * The unit to show, which a placement may force.
+		 *
+		 * @param {Object} result The response from the endpoint.
+		 * @return {string} Unit label.
+		 */
+		function unitLabel( result ) {
+			return config.unitLabel || result.unit_label || '';
 		}
 
 		/**
@@ -336,20 +444,31 @@
 				return '';
 			}
 
+			// With every per-zone detail switched off there is nothing to list.
+			if ( ! shows( 'showZoneName' ) && ! shows( 'showUtility' ) && ! shows( 'showSource' ) && ! shows( 'showValue' ) ) {
+				return '';
+			}
+
 			var html = '<ul class="kdna-wh__zones">';
 
 			result.zones.forEach( function ( zone ) {
 				html += '<li class="kdna-wh__zone">';
-				html += '<span class="kdna-wh__zone-name">' + escapeHtml( zone.zone_name ) + '</span>';
-				html += ' <span class="kdna-wh__zone-value">' + escapeHtml( zone.value_display ) + ' ' + escapeHtml( result.unit_label ) + '</span>';
 
-				if ( zone.utility_name ) {
+				if ( shows( 'showZoneName' ) ) {
+					html += '<span class="kdna-wh__zone-name">' + escapeHtml( zone.zone_name ) + '</span>';
+				}
+
+				if ( shows( 'showValue' ) ) {
+					html += ' <span class="kdna-wh__zone-value">' + escapeHtml( zone.value_display ) + ' ' + escapeHtml( unitLabel( result ) ) + '</span>';
+				}
+
+				if ( zone.utility_name && shows( 'showUtility' ) ) {
 					html += ' <span class="kdna-wh__zone-utility">' + escapeHtml( zone.utility_name ) + '</span>';
 				}
 
 				// Only http and https links are rendered. The URL comes from
 				// imported data, and anything else does not belong in an href.
-				if ( zone.source_url && /^https?:\/\//i.test( zone.source_url ) ) {
+				if ( shows( 'showSource' ) && zone.source_url && /^https?:\/\//i.test( zone.source_url ) ) {
 					html += ' <a class="kdna-wh__zone-source" href="' + escapeHtml( zone.source_url ) + '" target="_blank" rel="noopener noreferrer nofollow">' +
 						escapeHtml( zone.source_date_display || strings.sourceLabel || 'Source' ) +
 						'</a>';
@@ -447,6 +566,7 @@
 		} );
 
 		applyCountry( false );
+		renderPreview();
 	}
 
 	/**
