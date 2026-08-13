@@ -52,7 +52,7 @@ class KDNA_WH_Lookup {
 	 */
 	public static function lookup( $country_code, $postcode ) {
 		$requested = KDNA_WH_DB::normalise_country( $country_code );
-		$available = KDNA_WH_DB::get_countries_with_data();
+		$available = KDNA_WH_Sources::get_serviceable_countries();
 
 		// An unknown country is treated as no match rather than an error. The
 		// visitor did nothing wrong, and there is nothing for them to fix.
@@ -89,7 +89,13 @@ class KDNA_WH_Lookup {
 		}
 
 		$normalised = KDNA_WH_Countries::normalise_postcode( $requested, $raw );
-		$zones      = KDNA_WH_DB::get_zones_for_postcode( $requested, $normalised );
+
+		/*
+		 * Where the answer comes from is the source layer's business. It is
+		 * either the local tables or a provider with the local tables behind
+		 * it, and either way it returns the same rows and never an error.
+		 */
+		$zones = KDNA_WH_Sources::get_adapter( $requested )->get_zones( $normalised );
 
 		if ( ! $zones ) {
 			return self::build_result(

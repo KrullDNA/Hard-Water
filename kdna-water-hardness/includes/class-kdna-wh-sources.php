@@ -33,6 +33,15 @@ class KDNA_WH_Sources {
 	const STALE_MONTHS = 18;
 
 	/**
+	 * How long an API answer is kept before the provider is asked again.
+	 *
+	 * Thirty days. Hardness figures change once a year at most, so calling a
+	 * provider per lookup is wasted latency and, on a metered plan, wasted
+	 * money.
+	 */
+	const DEFAULT_TTL = 30 * DAY_IN_SECONDS;
+
+	/**
 	 * Reads the whole registry.
 	 *
 	 * @return array Country code to configuration.
@@ -54,11 +63,16 @@ class KDNA_WH_Sources {
 		$all     = self::get_all();
 
 		$defaults = array(
-			'source_type'  => 'csv',
-			'links'        => array(),
-			'last_import'  => '',
-			'api_endpoint' => '',
-			'api_key'      => '',
+			'source_type'    => 'csv',
+			'links'          => array(),
+			'last_import'    => '',
+			'api_endpoint'   => '',
+			'api_key'        => '',
+			'api_adapter'    => 'json',
+			'api_ttl'        => self::DEFAULT_TTL,
+			'api_confidence' => 'verified',
+			'api_error'      => '',
+			'api_error_at'   => '',
 		);
 
 		$config = isset( $all[ $country ] ) && is_array( $all[ $country ] ) ? $all[ $country ] : array();
@@ -137,6 +151,213 @@ class KDNA_WH_Sources {
 		$config['source_type'] = 'api' === $type ? 'api' : 'csv';
 
 		return self::save_country( $country_code, $config );
+	}
+
+	/**
+	 * Saves a country's API configuration.
+	 *
+	 * The key is stored in the site's own settings and is never written into
+	 * the plugin, into a URL that would reach a server log, or into the cache
+	 * key.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @param array  $api          Endpoint, key, adapter, TTL and confidence.
+	 * @return bool
+	 */
+	public static function save_api_settings( $country_code, array $api ) {
+		$config = self::get_country( $country_code );
+
+		if ( isset( $api['api_endpoint'] ) ) {
+			$config['api_endpoint'] = esc_url_raw( trim( (string) $api['api_endpoint'] ) );
+		}
+
+		if ( isset( $api['api_key'] ) ) {
+			$config['api_key'] = trim( sanitize_text_field( $api['api_key'] ) );
+		}
+
+		if ( isset( $api['api_adapter'] ) ) {
+			$adapters              = self::get_adapters();
+			$adapter               = sanitize_key( $api['api_adapter'] );
+			$config['api_adapter'] = isset( $adapters[ $adapter ] ) ? $adapter : 'json';
+		}
+
+		if ( isset( $api['api_ttl'] ) ) {
+			// An hour at the least, so a misconfiguration cannot turn into a
+			// call on every page view. A year at the most.
+			$config['api_ttl'] = max( HOUR_IN_SECONDS, min( YEAR_IN_SECONDS, absint( $api['api_ttl'] ) ) );
+		}
+
+		if ( isset( $api['api_confidence'] ) ) {
+			$config['api_confidence'] = 'estimated' === $api['api_confidence'] ? 'estimated' : 'verified';
+		}
+
+		return self::save_country( $country_code, $config );
+	}
+
+	/**
+	 * How long this country's API answers are cached for.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @return int Seconds.
+	 */
+	public static function get_ttl( $country_code ) {
+		$config = self::get_country( $country_code );
+		$ttl    = absint( $config['api_ttl'] );
+
+		/**
+		 * Filters the cache lifetime for a country's API answers.
+		 *
+		 * @param int    $ttl     Seconds.
+		 * @param string $country ISO country code.
+		 */
+		return (int) apply_filters( 'kdna_wh_api_ttl', $ttl ? $ttl : self::DEFAULT_TTL, KDNA_WH_DB::normalise_country( $country_code ) );
+	}
+
+	/**
+	 * What confidence an API answer is stored with when the provider does not
+	 * say. Choosing a provider is itself a statement of trust in it, so this
+	 * defaults to verified, but it is a setting because not every provider
+	 * deserves that.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @return string verified or estimated.
+	 */
+	public static function get_api_confidence( $country_code ) {
+		$config = self::get_country( $country_code );
+
+		return 'estimated' === $config['api_confidence'] ? 'estimated' : 'verified';
+	}
+
+	/**
+	 * Records the last error a provider returned, for the admin.
+	 *
+	 * The visitor never sees any of this. Somebody still has to be able to
+	 * find out why a country quietly stopped using its API.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @param string $message      What the provider said.
+	 * @return void
+	 */
+	public static function record_api_error( $country_code, $message ) {
+		$config = self::get_country( $country_code );
+
+		$config['api_error']    = substr( (string) $message, 0, 300 );
+		$config['api_error_at'] = current_time( 'mysql' );
+
+		self::save_country( $country_code, $config );
+	}
+
+	/**
+	 * Clears the recorded error.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @return void
+	 */
+	public static function clear_api_error( $country_code ) {
+		$config = self::get_country( $country_code );
+
+		$config['api_error']    = '';
+		$config['api_error_at'] = '';
+
+		self::save_country( $country_code, $config );
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Adapters
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * The API adapters available to choose from.
+	 *
+	 * Adding a provider means writing a subclass of KDNA_WH_Source_API and
+	 * adding one line to this filter. Nothing else in the plugin changes,
+	 * which is the point of the interface.
+	 *
+	 * @return array Adapter key to class name.
+	 */
+	public static function get_adapters() {
+		$adapters = array(
+			'json' => 'KDNA_WH_Source_JSON',
+		);
+
+		/**
+		 * Filters the registered API adapters.
+		 *
+		 * @param array $adapters Adapter key to class name. Each class must
+		 *                        extend KDNA_WH_Source_API.
+		 */
+		return apply_filters( 'kdna_wh_api_adapters', $adapters );
+	}
+
+	/**
+	 * Builds the source for a country.
+	 *
+	 * Falls back to local data whenever the API path is chosen but not usable,
+	 * so a half-finished configuration degrades to the working thing rather
+	 * than to nothing.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @return KDNA_WH_Source
+	 */
+	public static function get_adapter( $country_code ) {
+		$country = KDNA_WH_DB::normalise_country( $country_code );
+		$config  = self::get_country( $country );
+
+		if ( 'api' === $config['source_type'] ) {
+			$adapters = self::get_adapters();
+			$key      = isset( $config['api_adapter'] ) ? $config['api_adapter'] : 'json';
+			$class    = isset( $adapters[ $key ] ) ? $adapters[ $key ] : '';
+
+			if ( $class && class_exists( $class ) && is_subclass_of( $class, 'KDNA_WH_Source_API' ) ) {
+				$source = new $class( $country, $config );
+
+				if ( $source->is_available() ) {
+					/**
+					 * Filters the source used for a country.
+					 *
+					 * @param KDNA_WH_Source $source  The source.
+					 * @param string         $country ISO country code.
+					 * @param array          $config  The country's configuration.
+					 */
+					return apply_filters( 'kdna_wh_source', $source, $country, $config );
+				}
+			}
+		}
+
+		return apply_filters( 'kdna_wh_source', new KDNA_WH_Source_CSV( $country ), $country, $config );
+	}
+
+	/**
+	 * Whether a country is set up to answer at all, whether from imported data
+	 * or from a provider.
+	 *
+	 * A country served by an API holds no local data until its first lookups
+	 * have been written through, so asking the tables alone would keep it out
+	 * of the country selector and make it unreachable.
+	 *
+	 * @return array List of ISO country codes.
+	 */
+	public static function get_serviceable_countries() {
+		$countries = KDNA_WH_DB::get_countries_with_data();
+
+		foreach ( self::get_all() as $code => $config ) {
+			if ( in_array( $code, $countries, true ) ) {
+				continue;
+			}
+
+			$type     = isset( $config['source_type'] ) ? $config['source_type'] : 'csv';
+			$endpoint = isset( $config['api_endpoint'] ) ? trim( (string) $config['api_endpoint'] ) : '';
+
+			if ( 'api' === $type && '' !== $endpoint ) {
+				$countries[] = $code;
+			}
+		}
+
+		sort( $countries );
+
+		return $countries;
 	}
 
 	/*

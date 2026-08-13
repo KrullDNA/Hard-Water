@@ -1151,6 +1151,45 @@ class KDNA_WH_DB {
 	}
 
 	/**
+	 * Deletes every transient whose name begins with a prefix.
+	 *
+	 * Transients have no bulk API and no way to list them, so clearing a group
+	 * of them means going to the options table for their names. It lives here
+	 * rather than in the source layer because this class is the only place
+	 * that talks to the database.
+	 *
+	 * @param string $prefix Transient name prefix, without the _transient_ part.
+	 * @return int Number removed.
+	 */
+	public static function delete_transients_by_prefix( $prefix ) {
+		global $wpdb;
+
+		$prefix = preg_replace( '/[^a-z0-9_\-]/i', '', (string) $prefix );
+
+		if ( '' === $prefix ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- transients cannot be listed any other way.
+		$names = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( '_transient_' . $prefix ) . '%'
+			)
+		);
+
+		$removed = 0;
+
+		foreach ( (array) $names as $name ) {
+			if ( delete_transient( str_replace( '_transient_', '', $name ) ) ) {
+				$removed++;
+			}
+		}
+
+		return $removed;
+	}
+
+	/**
 	 * The first and last dates in the log, to frame the date filters.
 	 *
 	 * @return array First and last, as Y-m-d H:i:s or empty strings.

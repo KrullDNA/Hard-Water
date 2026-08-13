@@ -144,7 +144,7 @@ class KDNA_WH_Countries {
 	public static function available() {
 		$available = array();
 
-		foreach ( KDNA_WH_DB::get_countries_with_data() as $code ) {
+		foreach ( KDNA_WH_Sources::get_serviceable_countries() as $code ) {
 			$available[ $code ] = self::get( $code );
 		}
 
@@ -172,7 +172,7 @@ class KDNA_WH_Countries {
 	 * @return string Country code, or an empty string when nothing has data.
 	 */
 	public static function default_country( $requested = '' ) {
-		$available = KDNA_WH_DB::get_countries_with_data();
+		$available = KDNA_WH_Sources::get_serviceable_countries();
 
 		if ( ! $available ) {
 			return '';

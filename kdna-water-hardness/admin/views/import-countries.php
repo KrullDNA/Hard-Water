@@ -237,13 +237,103 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 						</fieldset>
 
 						<p class="description">
-							<?php esc_html_e( 'The API option is recorded here now but is not yet wired up: lookups use the imported data whichever is selected until the data source layer is built. It is stored now so the configuration does not have to move later.', 'kdna-water-hardness' ); ?>
+							<?php esc_html_e( 'With the API option, a lookup asks the provider first, caches the answer, and writes it into this site\'s own tables so the data accumulates. If the provider is unreachable, slow, or out of quota, the imported data answers instead and the visitor sees nothing amiss.', 'kdna-water-hardness' ); ?>
 						</p>
+
+						<div class="kdna-wh-api-fields">
+							<div class="kdna-wh-field-row">
+								<p class="kdna-wh-grow">
+									<label for="kdna-wh-endpoint-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'API endpoint', 'kdna-water-hardness' ); ?></label>
+									<input type="url" name="api_endpoint" id="kdna-wh-endpoint-<?php echo esc_attr( $kdna_wh_code ); ?>"
+										class="large-text" value="<?php echo esc_attr( $kdna_wh_config['api_endpoint'] ); ?>"
+										placeholder="https://api.example.com/hardness/{postcode}">
+									<span class="description">
+										<?php esc_html_e( 'Use {postcode} where the postcode belongs. Without it the postcode is added as a query argument. {country} and {key} also work.', 'kdna-water-hardness' ); ?>
+									</span>
+								</p>
+							</div>
+
+							<div class="kdna-wh-field-row">
+								<p>
+									<label for="kdna-wh-apikey-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'API key', 'kdna-water-hardness' ); ?></label>
+									<input type="password" name="api_key" id="kdna-wh-apikey-<?php echo esc_attr( $kdna_wh_code ); ?>"
+										class="regular-text" value="<?php echo esc_attr( $kdna_wh_config['api_key'] ); ?>" autocomplete="new-password">
+									<span class="description"><?php esc_html_e( 'Sent as a bearer token, so it stays out of server logs.', 'kdna-water-hardness' ); ?></span>
+								</p>
+
+								<p>
+									<label for="kdna-wh-adapter-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'Provider adapter', 'kdna-water-hardness' ); ?></label>
+									<select name="api_adapter" id="kdna-wh-adapter-<?php echo esc_attr( $kdna_wh_code ); ?>">
+										<?php foreach ( KDNA_WH_Sources::get_adapters() as $kdna_wh_key => $kdna_wh_class ) : ?>
+											<option value="<?php echo esc_attr( $kdna_wh_key ); ?>" <?php selected( $kdna_wh_config['api_adapter'], $kdna_wh_key ); ?>>
+												<?php echo esc_html( $kdna_wh_key ); ?>
+											</option>
+										<?php endforeach; ?>
+									</select>
+									<span class="description"><?php esc_html_e( 'A provider needing more than plain JSON gets its own adapter class.', 'kdna-water-hardness' ); ?></span>
+								</p>
+							</div>
+
+							<div class="kdna-wh-field-row">
+								<p>
+									<label for="kdna-wh-ttl-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'Cache answers for', 'kdna-water-hardness' ); ?></label>
+									<input type="number" name="api_ttl_days" id="kdna-wh-ttl-<?php echo esc_attr( $kdna_wh_code ); ?>"
+										class="small-text" min="1" max="365" step="1"
+										value="<?php echo esc_attr( max( 1, (int) round( $kdna_wh_config['api_ttl'] / DAY_IN_SECONDS ) ) ); ?>">
+									<?php esc_html_e( 'days', 'kdna-water-hardness' ); ?>
+									<span class="description"><?php esc_html_e( 'Hardness changes once a year at most, so 30 days is a sensible default.', 'kdna-water-hardness' ); ?></span>
+								</p>
+
+								<p>
+									<label for="kdna-wh-apiconf-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'Store answers as', 'kdna-water-hardness' ); ?></label>
+									<select name="api_confidence" id="kdna-wh-apiconf-<?php echo esc_attr( $kdna_wh_code ); ?>">
+										<option value="verified" <?php selected( $kdna_wh_config['api_confidence'], 'verified' ); ?>><?php esc_html_e( 'Verified', 'kdna-water-hardness' ); ?></option>
+										<option value="estimated" <?php selected( $kdna_wh_config['api_confidence'], 'estimated' ); ?>><?php esc_html_e( 'Estimated', 'kdna-water-hardness' ); ?></option>
+									</select>
+									<span class="description"><?php esc_html_e( 'Estimated answers always show as inconclusive on the front end.', 'kdna-water-hardness' ); ?></span>
+								</p>
+							</div>
+
+							<?php if ( $kdna_wh_config['api_error'] ) : ?>
+								<div class="notice notice-warning inline">
+									<p>
+										<strong><?php esc_html_e( 'Last provider error:', 'kdna-water-hardness' ); ?></strong>
+										<?php echo esc_html( $kdna_wh_config['api_error'] ); ?>
+										<?php if ( $kdna_wh_config['api_error_at'] ) : ?>
+											<em>
+												<?php
+												printf(
+													/* translators: %s: how long ago, e.g. 2 hours. */
+													esc_html__( '(%s ago)', 'kdna-water-hardness' ),
+													esc_html( human_time_diff( strtotime( $kdna_wh_config['api_error_at'] ), current_time( 'timestamp' ) ) ) // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp
+												);
+												?>
+											</em>
+										<?php endif; ?>
+										<br>
+										<?php esc_html_e( 'Visitors were served the imported data instead and saw no error.', 'kdna-water-hardness' ); ?>
+									</p>
+								</div>
+							<?php endif; ?>
+						</div>
 
 						<p class="submit">
 							<button type="submit" class="button"><?php esc_html_e( 'Save', 'kdna-water-hardness' ); ?></button>
 						</p>
 					</form>
+
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="kdna-wh-inline-form">
+						<?php wp_nonce_field( 'kdna_wh_clear_api_cache' ); ?>
+						<input type="hidden" name="action" value="kdna_wh_clear_api_cache">
+						<input type="hidden" name="country" value="<?php echo esc_attr( $kdna_wh_code ); ?>">
+						<button type="submit" class="button">
+							<?php esc_html_e( 'Clear cached API answers', 'kdna-water-hardness' ); ?>
+						</button>
+					</form>
+
+					<p class="description">
+						<?php esc_html_e( 'Clearing the cache also lifts the pause that follows a provider failure, so the next lookup tries the provider again straight away.', 'kdna-water-hardness' ); ?>
+					</p>
 
 					<p>
 						<a href="

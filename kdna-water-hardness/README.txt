@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -102,8 +102,44 @@ Stage 5, complete. Geolocation and logging.
 * Lookup Log screen grouped by postcode and band, filterable by country, band,
   date range and postcode, with a CSV export of exactly what is on screen
 
-Stages still to come: pluggable data sources, the Elementor widget, then
-caching, accessibility and delivery.
+Stage 5b, complete. Pluggable data sources.
+
+* A source adapter interface with two implementations: the imported data, and
+  a base class for a remote provider
+* Per-country source type, endpoint, key, adapter, cache lifetime and
+  confidence, all set in the admin and none of it in the code
+* Answers cached per country and postcode, for 30 days by default
+* Successful answers written into this site's own tables, so the data set
+  grows into its own fallback and the tool degrades rather than breaks if a
+  provider disappears
+* Any failure, timeout or exhausted quota falls back to the imported data
+  silently. The visitor never sees a third party's error, and the reason is
+  recorded in the admin instead
+
+Stages still to come: the Elementor widget, then caching, accessibility and
+delivery.
+
+== Using an API for a country ==
+
+Water Hardness, Data Import, Countries and sources.
+
+Set the country's source to a remote API, give it an endpoint and a key, and
+lookups will ask the provider first. Put {postcode} in the endpoint where the
+postcode belongs; {country} and {key} work too, and without any placeholder
+the postcode is added as a query argument. The key is sent as a bearer token
+unless the endpoint asks for it by name, so it stays out of server logs.
+
+The bundled JSON adapter reads the shapes a hardness API is likely to return:
+a list of zones, a single zone, either wrapped in a container key, and the
+field names providers commonly use. A provider needing more than that gets its
+own adapter class extending KDNA_WH_Source_API and one line on the
+kdna_wh_api_adapters filter. Nothing else changes.
+
+Two things to confirm with any provider before depending on them. That caching
+results locally and using the data commercially are both permitted, since some
+prohibit storage: if yours does, return false from the
+kdna_wh_api_write_through filter. And that you can live without them, which
+you can, because every answer they give is kept.
 
 == Country pre-selection ==
 
@@ -200,6 +236,10 @@ Invalid postcodes are not logged at all. A typo is not a place, and there is
 nothing geographic to learn from it.
 
 == Changelog ==
+
+= 0.5.1 =
+* Stage 5b. Source adapter layer, per-country API configuration, response
+  caching, write-through to local tables and silent fallback.
 
 = 0.5.0 =
 * Stage 5. Country pre-selection, the MaxMind updater, lookup logging and the

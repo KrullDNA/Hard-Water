@@ -33,6 +33,7 @@ class KDNA_WH_Admin_Import {
 			'kdna_wh_save_country' => 'handle_save_country',
 			'kdna_wh_delete_data'  => 'handle_delete_data',
 			'kdna_wh_delete_zones' => 'handle_delete_zones',
+			'kdna_wh_clear_api_cache' => 'handle_clear_api_cache',
 		);
 
 		foreach ( $actions as $action => $method ) {
@@ -392,7 +393,60 @@ class KDNA_WH_Admin_Import {
 
 		KDNA_WH_Sources::set_source_type( $country, $type );
 
+		// Entered in days, because nobody thinks in seconds.
+		$days = isset( $_POST['api_ttl_days'] ) ? absint( wp_unslash( $_POST['api_ttl_days'] ) ) : 30;
+
+		KDNA_WH_Sources::save_api_settings(
+			$country,
+			array(
+				'api_endpoint'   => isset( $_POST['api_endpoint'] ) ? sanitize_text_field( wp_unslash( $_POST['api_endpoint'] ) ) : '',
+				'api_key'        => isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '',
+				'api_adapter'    => isset( $_POST['api_adapter'] ) ? sanitize_key( wp_unslash( $_POST['api_adapter'] ) ) : 'json',
+				'api_ttl'        => max( 1, $days ) * DAY_IN_SECONDS,
+				'api_confidence' => isset( $_POST['api_confidence'] ) ? sanitize_key( wp_unslash( $_POST['api_confidence'] ) ) : 'verified',
+			)
+		);
+
+		/*
+		 * A configuration change makes any recorded failure historic, and the
+		 * pause that came with it should not outlive the fix. Cached answers go
+		 * too: they were fetched under the old settings.
+		 */
+		KDNA_WH_Sources::clear_api_error( $country );
+		KDNA_WH_Source_API::clear_cache( $country );
+
 		self::add_notice( 'success', __( 'Country settings saved.', 'kdna-water-hardness' ) );
+
+		self::redirect(
+			array(
+				'tab'     => 'countries',
+				'country' => KDNA_WH_DB::normalise_country( $country ),
+			)
+		);
+	}
+
+	/**
+	 * Empties a country's cached API answers, and lifts the pause that follows
+	 * a provider failure.
+	 *
+	 * @return void
+	 */
+	public static function handle_clear_api_cache() {
+		self::guard( 'kdna_wh_clear_api_cache' );
+
+		$country = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
+		$removed = KDNA_WH_Source_API::clear_cache( $country );
+
+		KDNA_WH_Sources::clear_api_error( $country );
+
+		self::add_notice(
+			'success',
+			sprintf(
+				/* translators: %s: number of cached answers. */
+				_n( '%s cached answer cleared.', '%s cached answers cleared.', $removed, 'kdna-water-hardness' ),
+				number_format_i18n( $removed )
+			)
+		);
 
 		self::redirect(
 			array(
