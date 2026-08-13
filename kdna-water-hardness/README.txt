@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -72,9 +72,41 @@ Stage 3, complete. Front-end lookup.
   where the answer counts
 * Vanilla JavaScript, no jQuery, and assets loaded only where the tool appears
 
-Stages still to come: results panel and band copy, geolocation and logging,
-pluggable data sources, the Elementor widget, then caching, accessibility and
-delivery.
+Stage 4, complete. Results panel and band copy.
+
+* Results panel showing the figure, its band, and a visual scale marking where
+  the reading sits. A reading that spans zones is drawn as a span rather than
+  a point
+* Classification bands editable per country: label, starting figure, colour,
+  and whether the band is used at all, so a country running three bands
+  instead of four is a setting rather than a change to the code
+* Heading, body copy and call to action editable per band, per country, with
+  a reminder of the claims rules sitting directly above the fields
+* The fifth result state, inconclusive, now that there are bands to cross and
+  copy to explain it. Any one of three things triggers it: the postcode spans
+  zones in different bands, the figure is estimated rather than published, or
+  the report it came from is older than a configurable threshold
+* An inconclusive result names no band, but still gives the range, the zones
+  involved, and the argument that does not depend on the reading
+
+Stages still to come: geolocation and logging, pluggable data sources, the
+Elementor widget, then caching, accessibility and delivery.
+
+== Bands and copy ==
+
+Water Hardness, Settings. Everything a visitor reads is here, per country.
+
+A band runs from the figure it starts at until the next band begins, so you
+only set the lower end and the bands cannot overlap or leave a gap. The
+Australian defaults are soft to 60, moderately hard to 120, hard to 180, and
+very hard above that, in mg/L as CaCO3. A band is inclusive at the bottom, so
+a reading of exactly 60 is moderately hard rather than soft.
+
+Two things about the default copy are deliberate. The soft-water block does not
+read as a rejection: most of Australia is on soft water, and if that result
+lands as "this is not for you" the tool works against itself for the majority
+of the people who use it. And every line is an appearance claim, because the
+same rules apply here as on pack.
 
 == Using the shortcode ==
 
@@ -106,9 +138,9 @@ be attributable to a published document. While you are still compiling, there
 is an option to accept those rows anyway, and they are stored as estimated
 whatever else the file says.
 
-An estimated figure is currently still shown, marked plainly as an estimate
-rather than a published reading. Stage 4 turns that into a proper inconclusive
-result, once the copy exists to explain itself.
+An estimated figure is never given as a straight answer. It produces an
+inconclusive result, which explains what is known and why one figure would be
+misleading.
 
 Postcode mappings need a postcode and either a zone name or a zone ID. A
 postcode that spans two supply zones gets one row per zone. That is not a
@@ -130,6 +162,10 @@ the band matched and a timestamp. It stores no IP address, no email address and
 no other personal identifier.
 
 == Changelog ==
+
+= 0.4.0 =
+* Stage 4. Results panel, band scale, per-country band copy, and the
+  inconclusive result state.
 
 = 0.3.0 =
 * Stage 3. REST endpoint, shortcode, country selector and front-end lookup.

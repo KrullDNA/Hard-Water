@@ -192,38 +192,136 @@
 
 			setError( '' );
 
-			var html = '';
+			var copy = result.copy || {};
+			var html = '<div class="kdna-wh__panel kdna-wh__panel--' + escapeHtml( result.state ) + '">';
 
-			if ( result.state === 'no_match' ) {
-				html = '<div class="kdna-wh__message kdna-wh__message--no-match">' +
-					'<p>' + escapeHtml( result.message ) + '</p>' +
-					'</div>';
-			} else {
-				html = '<div class="kdna-wh__panel kdna-wh__panel--' + escapeHtml( result.state ) + '">';
-
+			// The figure, unless there is nothing to show one for.
+			if ( result.value_display ) {
 				html += '<p class="kdna-wh__value">' +
-					'<span class="kdna-wh__number">' + escapeHtml( result.value_display ) + '</span> ' +
-					'<span class="kdna-wh__unit">' + escapeHtml( result.unit_label ) + '</span>' +
-					'</p>';
+					'<span class="kdna-wh__number">' + escapeHtml( result.value_display ) + '</span>';
 
-				if ( result.state === 'range' && strings.spansZones ) {
-					html += '<p class="kdna-wh__note">' + escapeHtml( strings.spansZones ) + '</p>';
+				// A range already carries its unit inside the phrase.
+				if ( result.value !== null ) {
+					html += ' <span class="kdna-wh__unit">' + escapeHtml( result.unit_label ) + '</span>';
 				}
 
-				if ( result.is_estimated && strings.estimated ) {
-					html += '<p class="kdna-wh__note kdna-wh__note--estimated">' + escapeHtml( strings.estimated ) + '</p>';
-				}
-
-				if ( result.source_summary ) {
-					html += '<p class="kdna-wh__meta">' + escapeHtml( result.source_summary ) + '</p>';
-				}
-
-				html += renderZones( result );
-				html += '</div>';
+				html += '</p>';
 			}
+
+			if ( result.band_label ) {
+				html += '<p class="kdna-wh__band" data-band="' + escapeHtml( result.band_key ) + '">' +
+					'<span class="kdna-wh__band-label"' + bandColourStyle( result ) + '>' +
+					escapeHtml( result.band_label ) +
+					'</span></p>';
+			}
+
+			html += renderScale( result );
+
+			// Why this result cannot be given as one figure. Specific to the
+			// lookup, and sits above the editable copy.
+			if ( result.reason && result.reason.text ) {
+				html += '<p class="kdna-wh__note kdna-wh__note--' + escapeHtml( result.reason.key ) + '">' +
+					escapeHtml( result.reason.text ) + '</p>';
+			} else if ( result.state === 'range' && strings.spansZones ) {
+				html += '<p class="kdna-wh__note">' + escapeHtml( strings.spansZones ) + '</p>';
+			}
+
+			if ( copy.heading ) {
+				html += '<h3 class="kdna-wh__heading">' + escapeHtml( copy.heading ) + '</h3>';
+			}
+
+			/*
+			 * The body is the one thing not escaped here. It is admin-authored
+			 * and already passed through WordPress's post filter on the way in
+			 * and again on the way out, so links and emphasis survive while
+			 * scripts do not.
+			 */
+			if ( copy.body ) {
+				html += '<div class="kdna-wh__body">' + copy.body + '</div>';
+			}
+
+			// If the copy for this state has been emptied in the admin, the
+			// built-in message still explains what happened rather than
+			// leaving a blank panel.
+			if ( ! copy.heading && ! copy.body && result.message ) {
+				html += '<p class="kdna-wh__note">' + escapeHtml( result.message ) + '</p>';
+			}
+
+			if ( copy.cta_url && copy.cta_text && /^(https?:\/\/|\/|#)/i.test( copy.cta_url ) ) {
+				html += '<p class="kdna-wh__cta-wrap">' +
+					'<a class="kdna-wh__cta" href="' + escapeHtml( copy.cta_url ) + '">' +
+					escapeHtml( copy.cta_text ) + '</a></p>';
+			}
+
+			if ( result.source_summary ) {
+				html += '<p class="kdna-wh__meta">' + escapeHtml( result.source_summary ) + '</p>';
+			}
+
+			html += renderZones( result );
+			html += '</div>';
 
 			resultEl.innerHTML = html;
 			resultEl.hidden = false;
+		}
+
+		/**
+		 * Inline colour for the band label, taken from the band's own setting.
+		 *
+		 * @param {Object} result The response from the endpoint.
+		 * @return {string} A style attribute, or an empty string.
+		 */
+		function bandColourStyle( result ) {
+			if ( ! result.band || ! result.band.colour || ! /^#[0-9a-f]{3,8}$/i.test( result.band.colour ) ) {
+				return '';
+			}
+
+			return ' style="background-color:' + escapeHtml( result.band.colour ) + '"';
+		}
+
+		/**
+		 * The visual scale, with every band drawn in its own colour and a
+		 * marker showing where this reading sits. A result spanning zones gets
+		 * a span rather than a point, because that is the honest picture.
+		 *
+		 * @param {Object} result The response from the endpoint.
+		 * @return {string} Markup.
+		 */
+		function renderScale( result ) {
+			if ( ! result.bands || ! result.bands.length || result.min_position === null ) {
+				return '';
+			}
+
+			var html = '<div class="kdna-wh__scale">';
+
+			html += '<div class="kdna-wh__scale-track">';
+
+			result.bands.forEach( function ( band ) {
+				var colour = /^#[0-9a-f]{3,8}$/i.test( band.colour ) ? band.colour : '#cccccc';
+
+				html += '<span class="kdna-wh__scale-band" title="' + escapeHtml( band.label ) + '"' +
+					' style="width:' + parseFloat( band.width ) + '%;background-color:' + escapeHtml( colour ) + '"></span>';
+			} );
+
+			var from = Math.max( 0, Math.min( 100, parseFloat( result.min_position ) ) );
+			var to = Math.max( 0, Math.min( 100, parseFloat( result.max_position ) ) );
+
+			if ( to - from > 0.5 ) {
+				html += '<span class="kdna-wh__scale-span" style="left:' + from + '%;width:' + ( to - from ) + '%"></span>';
+			} else {
+				html += '<span class="kdna-wh__scale-marker" style="left:' + from + '%"></span>';
+			}
+
+			html += '</div>';
+
+			html += '<ul class="kdna-wh__scale-labels">';
+
+			result.bands.forEach( function ( band ) {
+				html += '<li style="width:' + parseFloat( band.width ) + '%">' + escapeHtml( band.label ) + '</li>';
+			} );
+
+			html += '</ul></div>';
+
+			return html;
 		}
 
 		/**

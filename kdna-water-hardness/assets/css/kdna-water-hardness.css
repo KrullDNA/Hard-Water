@@ -63,25 +63,29 @@
 	outline-offset: 1px;
 }
 
+/*
+ * Both buttons are outlined rather than filled. An outline inherits the
+ * theme's own text colour on the theme's own background, so the contrast is
+ * always right without this stylesheet guessing at a palette it cannot see.
+ * The Elementor widget in Stage 6 is where a filled button gets its colours
+ * set deliberately.
+ */
 .kdna-wh__button {
-	background: currentColor;
-	border: 1px solid currentColor;
+	background: transparent;
+	border: 2px solid currentColor;
 	border-radius: 2px;
+	color: inherit;
 	cursor: pointer;
 	font: inherit;
 	font-weight: 600;
 	line-height: 1.4;
-	padding: 0.7em 1.4em;
+	padding: 0.65em 1.4em;
 	text-align: center;
 }
 
-/*
- * The label sits inside the button so the button's own colour can be set to a
- * background without taking the text with it.
- */
-.kdna-wh__button > span {
-	color: #fff;
-	mix-blend-mode: difference;
+.kdna-wh__button:hover,
+.kdna-wh__button:focus {
+	opacity: 0.75;
 }
 
 .kdna-wh__button:disabled {
@@ -131,6 +135,138 @@
 
 .kdna-wh__note {
 	margin: 0 0 0.5em;
+}
+
+.kdna-wh__heading {
+	font-size: 1.25em;
+	margin: 0.6em 0 0.3em;
+}
+
+.kdna-wh__body {
+	margin: 0 0 0.75em;
+}
+
+.kdna-wh__body > :first-child {
+	margin-top: 0;
+}
+
+.kdna-wh__body > :last-child {
+	margin-bottom: 0;
+}
+
+/* Band label -------------------------------------------------------------- */
+
+.kdna-wh__band {
+	margin: 0 0 0.75em;
+}
+
+.kdna-wh__band-label {
+	border-radius: 2px;
+	display: inline-block;
+	font-size: 0.85em;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	padding: 0.25em 0.7em;
+	text-transform: uppercase;
+}
+
+/* Band scale -------------------------------------------------------------- */
+
+.kdna-wh__scale {
+	margin: 0 0 1em;
+}
+
+.kdna-wh__scale-track {
+	border-radius: 3px;
+	display: flex;
+	height: 10px;
+	overflow: visible;
+	position: relative;
+	width: 100%;
+}
+
+.kdna-wh__scale-band {
+	display: block;
+	height: 100%;
+}
+
+.kdna-wh__scale-band:first-child {
+	border-bottom-left-radius: 3px;
+	border-top-left-radius: 3px;
+}
+
+.kdna-wh__scale-band:last-child {
+	border-bottom-right-radius: 3px;
+	border-top-right-radius: 3px;
+}
+
+/*
+ * The marker sits on top of the track rather than inside a band, so its
+ * position is a straight percentage of the whole scale.
+ */
+.kdna-wh__scale-marker {
+	background: currentColor;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	box-shadow: 0 0 0 1px currentColor;
+	display: block;
+	height: 18px;
+	margin-left: -9px;
+	position: absolute;
+	top: -4px;
+	width: 18px;
+}
+
+/* A reading that spans zones is drawn as the span it actually is. */
+.kdna-wh__scale-span {
+	border: 2px solid currentColor;
+	border-radius: 3px;
+	box-shadow: 0 0 0 1px #fff inset;
+	display: block;
+	height: 18px;
+	min-width: 4px;
+	position: absolute;
+	top: -4px;
+}
+
+.kdna-wh__scale-labels {
+	display: flex;
+	font-size: 0.7em;
+	letter-spacing: 0.02em;
+	list-style: none;
+	margin: 0.55em 0 0;
+	padding: 0;
+	text-transform: uppercase;
+}
+
+.kdna-wh__scale-labels li {
+	margin: 0;
+	opacity: 0.7;
+	overflow: hidden;
+	padding-right: 0.4em;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Call to action ---------------------------------------------------------- */
+
+.kdna-wh__cta-wrap {
+	margin: 0 0 0.75em;
+}
+
+.kdna-wh__cta {
+	border: 2px solid currentColor;
+	border-radius: 2px;
+	color: inherit;
+	display: inline-block;
+	font-weight: 600;
+	padding: 0.65em 1.4em;
+	text-decoration: none;
+}
+
+.kdna-wh__cta:hover,
+.kdna-wh__cta:focus {
+	opacity: 0.75;
 }
 
 .kdna-wh__meta {

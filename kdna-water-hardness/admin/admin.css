@@ -229,3 +229,83 @@
 	flex: 1 1 24em;
 	min-width: 0;
 }
+
+/* Bands and copy ---------------------------------------------------------- */
+
+.kdna-wh-bands-table td {
+	vertical-align: middle;
+}
+
+.kdna-wh-bands-table input[type="color"] {
+	background: none;
+	border: 1px solid #8c8f94;
+	border-radius: 3px;
+	cursor: pointer;
+	height: 30px;
+	padding: 2px;
+	width: 50px;
+}
+
+.kdna-wh-scale-preview {
+	border-radius: 3px;
+	display: flex;
+	margin: 0.5em 0 1.5em;
+	max-width: 60em;
+	overflow: hidden;
+}
+
+.kdna-wh-scale-preview__band {
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 26px;
+	overflow: hidden;
+	padding: 0 0.6em;
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
+ * The band colours are chosen by the user, so the label sits in a white pill
+ * rather than directly on the colour. That way it stays readable whatever they
+ * pick, without this stylesheet trying to guess a contrasting colour.
+ */
+.kdna-wh-scale-preview__band span {
+	background: rgba( 255, 255, 255, 0.85 );
+	border-radius: 2px;
+	color: #1d2327;
+	padding: 0 0.4em;
+}
+
+.kdna-wh-copy-block {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #2271b1;
+	border-radius: 3px;
+	margin-bottom: 1.25em;
+	max-width: 60em;
+	padding: 0.5em 1.15em 1em;
+}
+
+.kdna-wh-copy-block h4 {
+	margin-bottom: 0.25em;
+}
+
+.kdna-wh-copy-block label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.2em;
+}
+
+.kdna-wh-copy-block .description {
+	display: block;
+	font-weight: 400;
+}
+
+.kdna-wh-tga-note {
+	max-width: 60em;
+}
+
+.kdna-wh-grow {
+	flex: 1 1 22em;
+}

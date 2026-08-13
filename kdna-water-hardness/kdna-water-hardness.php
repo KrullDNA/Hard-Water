@@ -3,7 +3,7 @@
  * Plugin Name:       Water Hardness Lookup
  * Plugin URI:        https://krulldna.com/
  * Description:       Front-end postcode lookup returning local tap water hardness, a classification band and brand copy. Brand-agnostic and multi-country by data import.
- * Version:           0.3.0
+ * Version:           0.4.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Krull Design & Advertising
@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * KDNA_WH_DB_VERSION Schema version. Bump this whenever a table changes so the
  *                    upgrade routine knows to re-run dbDelta().
  */
-define( 'KDNA_WH_VERSION', '0.3.0' );
+define( 'KDNA_WH_VERSION', '0.4.0' );
 define( 'KDNA_WH_DB_VERSION', '1.0.0' );
 define( 'KDNA_WH_FILE', __FILE__ );
 define( 'KDNA_WH_PATH', plugin_dir_path( __FILE__ ) );
@@ -45,6 +45,7 @@ require_once KDNA_WH_PATH . 'includes/class-kdna-wh-db.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-units.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-sources.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-countries.php';
+require_once KDNA_WH_PATH . 'includes/class-kdna-wh-bands.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-lookup.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-rest.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-shortcode.php';
@@ -55,6 +56,7 @@ if ( is_admin() ) {
 	require_once KDNA_WH_PATH . 'includes/class-kdna-wh-importer.php';
 	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin.php';
 	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin-import.php';
+	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin-settings.php';
 }
 
 /*
@@ -111,6 +113,7 @@ if ( is_admin() ) {
 	add_action( 'admin_enqueue_scripts', array( 'KDNA_WH_Admin', 'enqueue_assets' ) );
 
 	KDNA_WH_Admin_Import::init();
+	KDNA_WH_Admin_Settings::init();
 }
 
 /**
