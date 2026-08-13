@@ -619,6 +619,9 @@ class KDNA_WH_Importer {
 
 			if ( $job['imported'] > 0 ) {
 				KDNA_WH_Sources::record_import( $job['country'], $job['type'], $job['imported'] );
+
+				// New data means the cached answers are answering from the old.
+				KDNA_WH_Lookup::bump_cache();
 			}
 
 			// The file has done its job, and it is customer-adjacent data

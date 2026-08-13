@@ -130,7 +130,7 @@
 
 .kdna-wh__button:hover,
 .kdna-wh__button:focus {
-	opacity: 0.75;
+	opacity: 0.85;
 }
 
 .kdna-wh__button:disabled {
@@ -151,6 +151,31 @@
 
 .kdna-wh--has-error .kdna-wh__input {
 	border-width: 2px;
+}
+
+/* Help text --------------------------------------------------------------- */
+
+.kdna-wh__help {
+	font-size: 0.9em;
+	margin: 0.4em 0 0;
+	opacity: 0.85;
+}
+
+/*
+ * A label hidden by design is still a label. Moving it out of view rather than
+ * removing it keeps the field named for anyone using a screen reader.
+ */
+.kdna-wh__label.screen-reader-text {
+	border: 0;
+	clip: rect( 1px, 1px, 1px, 1px );
+	clip-path: inset( 50% );
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+	word-wrap: normal !important;
 }
 
 /* Result ------------------------------------------------------------------ */
@@ -175,7 +200,7 @@
 
 .kdna-wh__unit {
 	font-size: 1em;
-	opacity: 0.75;
+	opacity: 0.85;
 }
 
 .kdna-wh__note {
@@ -206,13 +231,17 @@
 }
 
 /*
- * The colour comes from a custom property the script sets, rather than an
- * inline background. That leaves a stylesheet, and the Elementor controls,
- * able to override it in the ordinary way.
+ * Both colours come from custom properties the script sets, rather than inline
+ * styles. That leaves a stylesheet, and the Elementor controls, able to
+ * override them in the ordinary way.
+ *
+ * The text colour is worked out from the band's own colour, so a label stays
+ * readable whatever colour the band is set to.
  */
 .kdna-wh__band-label {
 	background-color: var( --kdna-wh-band-colour, transparent );
 	border-radius: 2px;
+	color: var( --kdna-wh-band-text, inherit );
 	display: inline-block;
 	font-size: 0.85em;
 	font-weight: 700;
@@ -293,7 +322,7 @@
 
 .kdna-wh__scale-labels li {
 	margin: 0;
-	opacity: 0.7;
+	opacity: 0.85;
 	overflow: hidden;
 	padding-right: 0.4em;
 	text-overflow: ellipsis;
@@ -318,13 +347,13 @@
 
 .kdna-wh__cta:hover,
 .kdna-wh__cta:focus {
-	opacity: 0.75;
+	opacity: 0.85;
 }
 
 .kdna-wh__meta {
 	font-size: 0.9em;
 	margin: 0 0 0.5em;
-	opacity: 0.8;
+	opacity: 0.85;
 }
 
 .kdna-wh__zones {
@@ -346,7 +375,7 @@
 
 .kdna-wh__zone-utility,
 .kdna-wh__zone-source {
-	opacity: 0.8;
+	opacity: 0.85;
 }
 
 /* A single zone adds nothing the headline figure has not already said. */
@@ -433,4 +462,37 @@
 	.kdna-wh-animate-slide .kdna-wh__result:not( [hidden] ) {
 		animation: none;
 	}
+}
+
+
+/* Focus visibility -------------------------------------------------------- */
+
+/*
+ * Every focusable thing gets a visible ring. This is what tells someone using
+ * a keyboard where they are, and the Elementor controls only recolour it: none
+ * of them offer to take it away.
+ *
+ * :focus-visible rather than :focus, so a mouse click does not leave a ring
+ * behind on a button that was only pressed.
+ */
+.kdna-wh__button:focus-visible,
+.kdna-wh__cta:focus-visible,
+.kdna-wh__zone-source:focus-visible,
+.kdna-wh__body a:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/*
+ * The results panel takes focus when it replaces the form, so that a keyboard
+ * user is not left with focus on something that has just been hidden. It is
+ * not interactive, so it gets no ring of its own.
+ */
+.kdna-wh__result:focus {
+	outline: none;
+}
+
+.kdna-wh__result:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 4px;
 }

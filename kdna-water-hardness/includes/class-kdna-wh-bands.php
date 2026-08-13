@@ -277,7 +277,13 @@ class KDNA_WH_Bands {
 			'copy'  => $clean_copy,
 		);
 
-		return update_option( self::OPTION, $all, false );
+		$saved = update_option( self::OPTION, $all, false );
+
+		// The bands decide which copy a result carries, and the copy is part
+		// of the cached answer, so both make what is cached out of date.
+		KDNA_WH_Lookup::bump_cache();
+
+		return $saved;
 	}
 
 	/**
@@ -296,7 +302,11 @@ class KDNA_WH_Bands {
 
 		unset( $all[ $country ] );
 
-		return update_option( self::OPTION, $all, false );
+		$saved = update_option( self::OPTION, $all, false );
+
+		KDNA_WH_Lookup::bump_cache();
+
+		return $saved;
 	}
 
 	/*
@@ -367,6 +377,7 @@ class KDNA_WH_Bands {
 				'key'        => $key,
 				'label'      => $band['label'],
 				'colour'     => $band['colour'],
+				'text'       => self::contrast_colour( $band['colour'] ),
 				'min'        => $min,
 				'max'        => $max,
 				'open_ended' => ( $index + 1 === $count ),
@@ -375,6 +386,51 @@ class KDNA_WH_Bands {
 		}
 
 		return $scale;
+	}
+
+	/**
+	 * Picks black or white text for a background colour.
+	 *
+	 * Band colours are configurable, so the text on top of one cannot be a
+	 * fixed colour: a dark label on a dark band is unreadable, and so is the
+	 * reverse. This uses the WCAG relative luminance formula and picks
+	 * whichever of black or white contrasts better, which is the same decision
+	 * a designer would make by eye but made every time.
+	 *
+	 * The Elementor per-band text colour control overrides it where a designer
+	 * wants something other than plain black or white.
+	 *
+	 * @param string $hex A colour in #rgb or #rrggbb form.
+	 * @return string #000000 or #ffffff.
+	 */
+	public static function contrast_colour( $hex ) {
+		$hex = ltrim( trim( (string) $hex ), '#' );
+
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+
+		if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
+			return '#000000';
+		}
+
+		$channels = array(
+			hexdec( substr( $hex, 0, 2 ) ) / 255,
+			hexdec( substr( $hex, 2, 2 ) ) / 255,
+			hexdec( substr( $hex, 4, 2 ) ) / 255,
+		);
+
+		foreach ( $channels as $index => $channel ) {
+			$channels[ $index ] = $channel <= 0.03928
+				? $channel / 12.92
+				: pow( ( $channel + 0.055 ) / 1.055, 2.4 );
+		}
+
+		$luminance = ( 0.2126 * $channels[0] ) + ( 0.7152 * $channels[1] ) + ( 0.0722 * $channels[2] );
+
+		// Contrast against white is 1.05 / (L + 0.05); against black it is
+		// (L + 0.05) / 0.05. They cross at a luminance of about 0.179.
+		return $luminance > 0.179 ? '#000000' : '#ffffff';
 	}
 
 	/**
@@ -520,6 +576,7 @@ class KDNA_WH_Bands {
 			array(
 				'stale_years'        => 3,
 				'inconclusive_stale' => true,
+				'cache_hours'        => 24,
 			),
 			is_array( $settings ) ? $settings : array()
 		);
@@ -536,9 +593,17 @@ class KDNA_WH_Bands {
 			// Zero switches the age check off entirely.
 			'stale_years'        => max( 0, min( 50, absint( isset( $settings['stale_years'] ) ? $settings['stale_years'] : 3 ) ) ),
 			'inconclusive_stale' => ! empty( $settings['inconclusive_stale'] ),
+			// Zero switches result caching off.
+			'cache_hours'        => max( 0, min( 8760, absint( isset( $settings['cache_hours'] ) ? $settings['cache_hours'] : 24 ) ) ),
 		);
 
-		return update_option( self::OPTION_SETTINGS, $clean, false );
+		$saved = update_option( self::OPTION_SETTINGS, $clean, false );
+
+		// These change what an answer says, so anything already cached is now
+		// out of date.
+		KDNA_WH_Lookup::bump_cache();
+
+		return $saved;
 	}
 
 	/**

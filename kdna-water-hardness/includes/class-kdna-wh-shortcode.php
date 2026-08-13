@@ -180,6 +180,8 @@ class KDNA_WH_Shortcode {
 				'button_text'   => '',
 				'label'         => '',
 				'placeholder'   => '',
+				'help_text'     => '',
+				'show_label'    => 'yes',
 				'class'         => '',
 			),
 			$atts,
@@ -193,6 +195,13 @@ class KDNA_WH_Shortcode {
 				'button_text'   => $atts['button_text'],
 				'label'         => $atts['label'],
 				'placeholder'   => $atts['placeholder'],
+				'help_text'     => $atts['help_text'],
+				/*
+				 * A shortcode attribute is always a string, so the switch has
+				 * to be read as one. Anything that is not a recognisable no
+				 * leaves the label showing, which is the safe way round.
+				 */
+				'show_label'    => ! in_array( strtolower( (string) $atts['show_label'] ), array( '0', 'no', 'false', 'off', 'hide' ), true ),
 				'class'         => $atts['class'],
 			)
 		);
@@ -346,7 +355,15 @@ class KDNA_WH_Shortcode {
 						<p class="kdna-wh__help" id="<?php echo esc_attr( $id ); ?>-help"><?php echo esc_html( $args['help_text'] ); ?></p>
 					<?php endif; ?>
 
-					<p class="kdna-wh__error" id="<?php echo esc_attr( $id ); ?>-error" data-kdna-wh-error hidden></p>
+					<?php
+					/*
+					 * role="alert" so a validation message is announced the
+					 * moment it appears. aria-describedby on the field above
+					 * ties it to the field as well, which is what a screen
+					 * reader reads when focus returns there.
+					 */
+					?>
+					<p class="kdna-wh__error" id="<?php echo esc_attr( $id ); ?>-error" role="alert" data-kdna-wh-error hidden></p>
 				</div>
 
 				<div class="kdna-wh__field kdna-wh__field--submit">
@@ -383,7 +400,7 @@ class KDNA_WH_Shortcode {
 			 * discover that anything happened.
 			 */
 			?>
-			<div class="kdna-wh__result" data-kdna-wh-result role="status" aria-live="polite" aria-atomic="true" hidden></div>
+			<div class="kdna-wh__result" data-kdna-wh-result role="status" aria-live="polite" aria-atomic="true" tabindex="-1" hidden></div>
 
 		</div>
 		<?php

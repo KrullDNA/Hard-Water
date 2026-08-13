@@ -71,38 +71,12 @@
 	fill: currentColor;
 }
 
-/* Help text --------------------------------------------------------------- */
-
-.kdna-wh__help {
-	font-size: 0.9em;
-	margin: 0.4em 0 0;
-	opacity: 0.8;
-}
-
 /*
  * Alignment is applied to the wrapper by a control, so the result panel and
  * the scale labels need to follow it rather than staying left.
  */
 .kdna-wh__scale-labels {
 	justify-content: space-between;
-}
-
-/*
- * The visually hidden label. The field must always have one for a screen
- * reader even when the design does not show it, so hiding it moves it out of
- * view rather than removing it.
- */
-.kdna-wh__label.screen-reader-text {
-	border: 0;
-	clip: rect( 1px, 1px, 1px, 1px );
-	clip-path: inset( 50% );
-	height: 1px;
-	margin: -1px;
-	overflow: hidden;
-	padding: 0;
-	position: absolute;
-	width: 1px;
-	word-wrap: normal !important;
 }
 
 /* Editor preview ---------------------------------------------------------- */

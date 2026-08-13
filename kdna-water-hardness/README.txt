@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.6.1
+Stable tag: 1.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -143,7 +143,27 @@ Stage 6b, complete. The widget's style controls.
 * Every selector is scoped to its own placement and targets the plugin's own
   classes, so nothing breaks under Elementor's optimized markup
 
-Stages still to come: caching, accessibility and delivery.
+Stage 7, complete. Caching, accessibility and delivery.
+
+* Finished results are cached per country and per postcode. The lifetime is a
+  setting, a day by default, and anything that changes what an answer would
+  say clears the cache by itself: an import, a deletion, a settings change, an
+  edit to the bands or the copy, or a change of source
+* An invalid postcode is never cached. A typo is not a place, it costs nothing
+  to reject, and caching typos would fill the options table with them
+* Every field is labelled, and a label hidden by design is moved out of view
+  rather than removed
+* The results panel is a polite live region, so an answer is announced when it
+  arrives. A validation message is an alert, because it needs saying now
+* Decoration is hidden from assistive technology: the spinner, the overlay,
+  the band scale and any icon. Nothing that only exists to be looked at is
+  read out, and nothing that carries meaning is left to be looked at alone
+* Focus is visible on everything focusable, and none of the style controls
+  offers to take that away
+* A band's label colour is worked out from the band's own colour, so it stays
+  readable whatever colour the band is set to
+* Result caching, accessibility and the shortcode fallback are covered by an
+  automated suite alongside the earlier stages
 
 == The Elementor widget ==
 
@@ -233,10 +253,19 @@ Attributes, all optional:
 * button_text   Defaults to "Check my water".
 * label         Overrides the country's own field label.
 * placeholder   Overrides the country's own example.
+* help_text     A line of guidance under the field, tied to it for screen
+                readers.
+* show_label    yes by default. Set no to hide the label visually. It stays in
+                the markup, because a hidden label is still a label.
 * class         Extra CSS class on the wrapper.
 
 Until data is imported the shortcode renders nothing at all for visitors, and
 a short explanatory note for administrators.
+
+The shortcode is a complete alternative to the Elementor widget, not a reduced
+version of it. Both render through the same function, so a site with no page
+builder gets the same markup, the same script and the same behaviour. What the
+widget adds is control over appearance, not over what the tool does.
 
 == Importing data ==
 
@@ -267,6 +296,40 @@ or say the answer is inconclusive, rather than quietly picking one figure.
 3. Open Water Hardness in the admin menu and confirm all three tables report as
    created.
 
+== Caching ==
+
+A finished result is kept for a day by default, keyed by country and postcode.
+Set the lifetime under Settings, Advanced. Zero switches caching off.
+
+You should not need to clear it by hand. Importing data, deleting data, saving
+the settings, editing the bands or the copy, and changing a country's source
+all clear it automatically, so the front end never shows an answer the admin
+has already changed. The button on the Advanced tab is there for the cases the
+plugin cannot see, such as rows edited directly in the database.
+
+The cache is per postcode, on the server. The REST response itself is sent with
+no-store, because a shared cache holding one visitor's answer for the next
+would be worse than no cache at all.
+
+== Accessibility ==
+
+* Every field has a real label, associated by id. Hiding the label is a layout
+  choice, and it stays in the markup where a screen reader can still find it
+* The results panel is a polite live region, read as a whole, so the answer is
+  announced when it arrives rather than left to be discovered
+* A validation message is an alert, and is also tied to the field it belongs
+  to, so it is read again when focus returns there
+* Everything is reachable and operable from the keyboard, with a visible focus
+  ring on every focusable element. When the result replaces the form, focus
+  moves to the result rather than to something that has just been hidden
+* Colour is never the only carrier of meaning. The band is named in words as
+  well as coloured, and the scale, the spinner and the loading overlay are
+  hidden from assistive technology because the words alongside them already
+  say what they say
+* Band label text is chosen automatically from the band's own colour, so it
+  keeps a contrast ratio of at least 4.5:1 whatever colour you pick
+* Animations are suppressed for anyone who has asked for reduced motion
+
 == Data and privacy ==
 
 The lookup log stores a country code, a postcode, the hardness figure served,
@@ -281,6 +344,11 @@ Invalid postcodes are not logged at all. A typo is not a place, and there is
 nothing geographic to learn from it.
 
 == Changelog ==
+
+= 1.0.0 =
+* Stage 7. Result caching with automatic invalidation, a cache lifetime
+  setting and a clear button, a full accessibility pass, and the first
+  packaged release.
 
 = 0.6.1 =
 * Stage 6b. All fourteen style sections, responsive dimensional controls,

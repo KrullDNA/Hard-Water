@@ -291,10 +291,15 @@
 			resultEl.innerHTML = html;
 			resultEl.hidden = false;
 
-			// Replacing the form suits a landing page, where the answer is the
-			// whole point of the page.
+			/*
+			 * Replacing the form hides whatever the visitor was focused on,
+			 * which leaves a keyboard user's focus nowhere. Moving it to the
+			 * result keeps them in the document and puts the answer they just
+			 * asked for at the top of what they read next.
+			 */
 			if ( config.replace ) {
 				form.hidden = true;
+				resultEl.focus();
 			}
 		}
 
@@ -389,7 +394,10 @@
 			 * designer sets in Elementor, and only !important could win it
 			 * back. A property leaves the cascade intact.
 			 */
-			return ' style="--kdna-wh-band-colour:' + escapeHtml( result.band.colour ) + '"';
+			var text = /^#[0-9a-f]{3,8}$/i.test( result.band.text || '' ) ? result.band.text : '';
+
+			return ' style="--kdna-wh-band-colour:' + escapeHtml( result.band.colour ) +
+				( text ? ';--kdna-wh-band-text:' + escapeHtml( text ) : '' ) + '"';
 		}
 
 		/**
@@ -405,7 +413,13 @@
 				return '';
 			}
 
-			var html = '<div class="kdna-wh__scale">';
+			/*
+			 * Hidden from assistive technology on purpose. The figure and the
+			 * band label say the same thing in words, and a screen reader
+			 * reading out four band names with no context is worse than
+			 * silence.
+			 */
+			var html = '<div class="kdna-wh__scale" aria-hidden="true">';
 
 			html += '<div class="kdna-wh__scale-track">';
 

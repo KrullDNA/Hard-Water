@@ -23,6 +23,7 @@ class KDNA_WH_Admin_Settings {
 		add_action( 'admin_post_kdna_wh_save_bands', array( __CLASS__, 'handle_save_bands' ) );
 		add_action( 'admin_post_kdna_wh_reset_bands', array( __CLASS__, 'handle_reset_bands' ) );
 		add_action( 'admin_post_kdna_wh_save_settings', array( __CLASS__, 'handle_save_settings' ) );
+		add_action( 'admin_post_kdna_wh_clear_cache', array( __CLASS__, 'handle_clear_cache' ) );
 	}
 
 	/**
@@ -165,10 +166,33 @@ class KDNA_WH_Admin_Settings {
 			array(
 				'stale_years'        => isset( $_POST['stale_years'] ) ? absint( wp_unslash( $_POST['stale_years'] ) ) : 3,
 				'inconclusive_stale' => ! empty( $_POST['inconclusive_stale'] ),
+				'cache_hours'        => isset( $_POST['cache_hours'] ) ? absint( wp_unslash( $_POST['cache_hours'] ) ) : 24,
 			)
 		);
 
 		KDNA_WH_Admin_Import::add_notice( 'success', __( 'Settings saved.', 'kdna-water-hardness' ) );
+
+		self::redirect( array( 'tab' => 'advanced' ) );
+	}
+
+	/**
+	 * Empties the result cache on request.
+	 *
+	 * @return void
+	 */
+	public static function handle_clear_cache() {
+		self::guard( 'kdna_wh_clear_cache' );
+
+		$removed = KDNA_WH_Lookup::flush_cache();
+
+		KDNA_WH_Admin_Import::add_notice(
+			'success',
+			sprintf(
+				/* translators: %s: number of cached results removed. */
+				_n( '%s cached result cleared.', '%s cached results cleared.', $removed, 'kdna-water-hardness' ),
+				number_format_i18n( $removed )
+			)
+		);
 
 		self::redirect( array( 'tab' => 'advanced' ) );
 	}

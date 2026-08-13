@@ -116,11 +116,40 @@ $kdna_wh_scale  = KDNA_WH_Bands::scale( $kdna_wh_country );
 							</p>
 						</td>
 					</tr>
+					<tr>
+						<th scope="row">
+							<label for="kdna-wh-cache-hours"><?php esc_html_e( 'Keep a result for', 'kdna-water-hardness' ); ?></label>
+						</th>
+						<td>
+							<input type="number" name="cache_hours" id="kdna-wh-cache-hours" class="small-text"
+								min="0" max="8760" step="1" value="<?php echo esc_attr( $kdna_wh_settings['cache_hours'] ); ?>">
+							<?php esc_html_e( 'hours', 'kdna-water-hardness' ); ?>
+
+							<p class="description">
+								<?php esc_html_e( 'The same postcode asked twice inside this window is answered from the cache rather than looked up again. Anything that changes an answer, an import, a settings change, or an edit to the copy, clears the cache by itself, so this can safely be long. Set to 0 to switch caching off.', 'kdna-water-hardness' ); ?>
+							</p>
+						</td>
+					</tr>
 				</tbody>
 			</table>
 
 			<p class="submit">
 				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save settings', 'kdna-water-hardness' ); ?></button>
+			</p>
+		</form>
+
+		<h3><?php esc_html_e( 'Cached results', 'kdna-water-hardness' ); ?></h3>
+
+		<p class="kdna-wh-intro">
+			<?php esc_html_e( 'Cached results are cleared automatically whenever something changes what an answer would say. This is here for the times you have changed something the plugin cannot see, such as data edited directly in the database or a correction made at the far end of an API.', 'kdna-water-hardness' ); ?>
+		</p>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'kdna_wh_clear_cache' ); ?>
+			<input type="hidden" name="action" value="kdna_wh_clear_cache">
+
+			<p class="submit">
+				<button type="submit" class="button"><?php esc_html_e( 'Clear cached results', 'kdna-water-hardness' ); ?></button>
 			</p>
 		</form>
 

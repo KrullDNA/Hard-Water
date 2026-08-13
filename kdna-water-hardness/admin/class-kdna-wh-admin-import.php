@@ -479,6 +479,9 @@ class KDNA_WH_Admin_Import {
 			self::redirect( array( 'tab' => 'browse' ) );
 		}
 
+		// Whatever is removed, the answers change.
+		KDNA_WH_Lookup::bump_cache();
+
 		if ( 'postcodes' === $scope ) {
 			$removed = KDNA_WH_DB::delete_postcodes_by_country( $code );
 
@@ -532,6 +535,8 @@ class KDNA_WH_Admin_Import {
 			self::add_notice( 'warning', __( 'No zones were selected.', 'kdna-water-hardness' ) );
 		} else {
 			$removed = KDNA_WH_DB::delete_zones( $ids );
+
+			KDNA_WH_Lookup::bump_cache();
 
 			self::add_notice(
 				'success',

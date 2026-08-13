@@ -44,6 +44,11 @@ class KDNA_WH_Lookup {
 	const STATE_INVALID = 'invalid';
 
 	/**
+	 * Prefix every cached result transient carries.
+	 */
+	const CACHE_PREFIX = 'kdna_wh_res_';
+
+	/**
 	 * Performs a lookup.
 	 *
 	 * @param string $country_code ISO country code.
@@ -51,6 +56,147 @@ class KDNA_WH_Lookup {
 	 * @return array The result, always with a state.
 	 */
 	public static function lookup( $country_code, $postcode ) {
+		$cached = self::get_cached( $country_code, $postcode );
+
+		if ( null !== $cached ) {
+			return $cached;
+		}
+
+		$result = self::run( $country_code, $postcode );
+
+		self::set_cached( $country_code, $postcode, $result );
+
+		return $result;
+	}
+
+	/*
+	 * -----------------------------------------------------------------------
+	 * Caching
+	 * -----------------------------------------------------------------------
+	 */
+
+	/**
+	 * How long a finished result is kept.
+	 *
+	 * @return int Seconds. Zero switches caching off.
+	 */
+	public static function cache_ttl() {
+		$settings = KDNA_WH_Bands::get_settings();
+		$ttl      = isset( $settings['cache_hours'] ) ? absint( $settings['cache_hours'] ) : 24;
+
+		/**
+		 * Filters how long a lookup result is cached.
+		 *
+		 * @param int $seconds Cache lifetime.
+		 */
+		return (int) apply_filters( 'kdna_wh_result_cache_ttl', $ttl * HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * The stamp every cache key carries.
+	 *
+	 * Bumped whenever anything that changes an answer changes: the bands, the
+	 * copy, the settings, the source configuration, or the data itself. Without
+	 * it, editing a band's copy would leave yesterday's wording on the front
+	 * end until the cache happened to expire, which is exactly the sort of
+	 * thing that gets blamed on the plugin being broken.
+	 *
+	 * @return int
+	 */
+	public static function cache_epoch() {
+		return (int) get_option( 'kdna_wh_cache_epoch', 1 );
+	}
+
+	/**
+	 * Invalidates every cached result at once.
+	 *
+	 * Changing the stamp is enough: the old entries become unreachable and
+	 * WordPress clears them out when they expire on their own.
+	 *
+	 * @return void
+	 */
+	public static function bump_cache() {
+		update_option( 'kdna_wh_cache_epoch', self::cache_epoch() + 1, false );
+	}
+
+	/**
+	 * Invalidates every cached result and deletes the rows behind them.
+	 *
+	 * bump_cache() is enough for correctness, so it is what the plugin calls
+	 * on its own. This is the version behind the button: someone who has asked
+	 * for the cache to be cleared means the rows as well, and wants a count
+	 * back that says something actually happened.
+	 *
+	 * @return int Entries removed.
+	 */
+	public static function flush_cache() {
+		self::bump_cache();
+
+		return KDNA_WH_DB::delete_transients_by_prefix( self::CACHE_PREFIX );
+	}
+
+	/**
+	 * The transient name for a lookup.
+	 *
+	 * @param string $country  ISO country code.
+	 * @param string $postcode Postcode as typed.
+	 * @return string
+	 */
+	private static function cache_key( $country, $postcode ) {
+		return self::CACHE_PREFIX . md5(
+			KDNA_WH_DB::normalise_country( $country ) . '|' .
+			KDNA_WH_DB::normalise_postcode( $postcode ) . '|' .
+			self::cache_epoch()
+		);
+	}
+
+	/**
+	 * Reads a cached result.
+	 *
+	 * @param string $country  ISO country code.
+	 * @param string $postcode Postcode as typed.
+	 * @return array|null
+	 */
+	private static function get_cached( $country, $postcode ) {
+		if ( self::cache_ttl() <= 0 ) {
+			return null;
+		}
+
+		$cached = get_transient( self::cache_key( $country, $postcode ) );
+
+		return is_array( $cached ) && isset( $cached['state'] ) ? $cached : null;
+	}
+
+	/**
+	 * Stores a result.
+	 *
+	 * An invalid postcode is not cached. It costs nothing to work out, it is
+	 * a typo rather than a place, and caching typos would fill the options
+	 * table with them.
+	 *
+	 * @param string $country  ISO country code.
+	 * @param string $postcode Postcode as typed.
+	 * @param array  $result   The result.
+	 * @return void
+	 */
+	private static function set_cached( $country, $postcode, array $result ) {
+		$ttl = self::cache_ttl();
+
+		if ( $ttl <= 0 || self::STATE_INVALID === $result['state'] ) {
+			return;
+		}
+
+		set_transient( self::cache_key( $country, $postcode ), $result, $ttl );
+	}
+
+	/**
+	 * Works the answer out, without touching the cache.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @param string $postcode     Postcode as the visitor typed it.
+	 * @return array
+	 */
+	private static function run( $country_code, $postcode ) {
 		$requested = KDNA_WH_DB::normalise_country( $country_code );
 		$available = KDNA_WH_Sources::get_serviceable_countries();
 

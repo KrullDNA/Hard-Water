@@ -122,9 +122,10 @@ class KDNA_WH_REST {
 
 		/*
 		 * Hardness figures change once a year at most, but a result is still
-		 * per-postcode and a shared cache holding one visitor's answer for the
-		 * next is worse than no cache. Transient caching on the server side
-		 * arrives in Stage 7.
+		 * per-postcode, and a shared cache between the visitor and the site
+		 * holding one person's answer for the next is worse than no cache. The
+		 * saving is taken on the server instead, inside lookup(), where the
+		 * answer is keyed by the postcode it belongs to.
 		 */
 		$response->header( 'Cache-Control', 'no-store, max-age=0' );
 

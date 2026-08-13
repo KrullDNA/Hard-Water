@@ -97,7 +97,13 @@ class KDNA_WH_Sources {
 		$all             = self::get_all();
 		$all[ $country ] = $config;
 
-		return update_option( self::OPTION, $all, false );
+		$saved = update_option( self::OPTION, $all, false );
+
+		// Where an answer comes from, and which countries are reachable, both
+		// change here, so cached answers can no longer be trusted.
+		KDNA_WH_Lookup::bump_cache();
+
+		return $saved;
 	}
 
 	/**
