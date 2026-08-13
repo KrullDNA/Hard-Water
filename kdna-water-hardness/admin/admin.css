@@ -1,0 +1,30 @@
+/**
+ * Admin styles for the Water Hardness Lookup screens.
+ *
+ * Deliberately minimal. These pages should look like WordPress, not like a
+ * plugin with opinions about the admin.
+ */
+
+.kdna-wh-wrap .kdna-wh-intro {
+	max-width: 46em;
+	margin: 0 0 1.25em;
+}
+
+.kdna-wh-wrap .kdna-wh-table {
+	max-width: 60em;
+	margin-bottom: 1.25em;
+}
+
+.kdna-wh-wrap .kdna-wh-table th {
+	font-weight: 600;
+}
+
+.kdna-wh-wrap .kdna-wh-ok {
+	color: #14663f;
+	font-weight: 600;
+}
+
+.kdna-wh-wrap .kdna-wh-bad {
+	color: #b32d2e;
+	font-weight: 600;
+}
