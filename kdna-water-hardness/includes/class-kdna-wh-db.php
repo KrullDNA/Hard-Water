@@ -269,6 +269,154 @@ class KDNA_WH_DB {
 	}
 
 	/**
+	 * Inserts many zones in a single query.
+	 *
+	 * Used by the CSV importer, which does its own row-level validation and
+	 * reports errors per row. Because of that this method trusts what it is
+	 * given and does not apply the required-source rule that insert_zone()
+	 * enforces. Anything reaching here has already been checked.
+	 *
+	 * @param array $rows List of cleaned zone rows.
+	 * @return int Number of rows inserted.
+	 */
+	public static function insert_zones_bulk( array $rows ) {
+		global $wpdb;
+
+		$values       = array();
+		$placeholders = array();
+		$now          = current_time( 'mysql' );
+
+		foreach ( $rows as $row ) {
+			$has_date = ! empty( $row['source_date'] );
+
+			/*
+			 * An empty source_date has to be written as a literal NULL. Passed
+			 * through a %s placeholder it becomes an empty string, and an
+			 * empty string in a DATE column is rejected outright under MySQL
+			 * strict mode, which would fail the entire batch rather than the
+			 * one row.
+			 */
+			$placeholders[] = $has_date
+				? '(%s, %s, %s, %f, %s, %s, %s, %s)'
+				: '(%s, %s, %s, %f, %s, %s, NULL, %s)';
+
+			$values[] = self::normalise_country( isset( $row['country_code'] ) ? $row['country_code'] : '' );
+			$values[] = substr( (string) ( isset( $row['utility_name'] ) ? $row['utility_name'] : '' ), 0, 255 );
+			$values[] = substr( (string) ( isset( $row['zone_name'] ) ? $row['zone_name'] : '' ), 0, 255 );
+			$values[] = round( (float) ( isset( $row['hardness_caco3'] ) ? $row['hardness_caco3'] : 0 ), 2 );
+			$values[] = self::normalise_confidence( isset( $row['confidence'] ) ? $row['confidence'] : '' );
+			$values[] = isset( $row['source_url'] ) ? (string) $row['source_url'] : '';
+
+			if ( $has_date ) {
+				$values[] = (string) $row['source_date'];
+			}
+
+			$values[] = $now;
+		}
+
+		if ( ! $placeholders ) {
+			return 0;
+		}
+
+		$table = self::zones_table();
+		$sql   = "INSERT INTO {$table} (country_code, utility_name, zone_name, hardness_caco3, confidence, source_url, source_date, updated_at) VALUES " . implode( ', ', $placeholders );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
+
+		return false === $result ? 0 : (int) $result;
+	}
+
+	/**
+	 * Builds a lookup of zone names to zone ids for one country, so the
+	 * postcode importer can resolve the zone named in each row.
+	 *
+	 * Two keys are produced per zone: the zone name on its own, and the
+	 * utility and zone name together. Where a zone name appears under more
+	 * than one utility the bare key is marked ambiguous, and the importer
+	 * asks for a utility column rather than guessing.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @return array {
+	 *     @type array $names     Normalised zone name to zone_id.
+	 *     @type array $ambiguous Normalised zone names appearing more than once.
+	 *     @type array $pairs     Normalised utility and zone name to zone_id.
+	 * }
+	 */
+	public static function get_zone_name_map( $country_code ) {
+		$zones = self::get_zones(
+			array(
+				'country_code' => $country_code,
+				'limit'        => 0,
+			)
+		);
+
+		$names     = array();
+		$ambiguous = array();
+		$pairs     = array();
+
+		foreach ( $zones as $zone ) {
+			$name_key = self::name_key( $zone['zone_name'] );
+			$pair_key = self::name_key( $zone['utility_name'] . '|' . $zone['zone_name'] );
+
+			$pairs[ $pair_key ] = (int) $zone['zone_id'];
+
+			if ( isset( $names[ $name_key ] ) ) {
+				$ambiguous[ $name_key ] = true;
+				continue;
+			}
+
+			$names[ $name_key ] = (int) $zone['zone_id'];
+		}
+
+		return array(
+			'names'     => $names,
+			'ambiguous' => $ambiguous,
+			'pairs'     => $pairs,
+		);
+	}
+
+	/**
+	 * Normalises a name for matching: lowercase, no punctuation, single
+	 * spaces. Lets "Yanchep / Two Rocks" match "Yanchep Two Rocks".
+	 *
+	 * @param string $name Raw name.
+	 * @return string
+	 */
+	public static function name_key( $name ) {
+		$key = strtolower( trim( (string) $name ) );
+		$key = preg_replace( '/[^a-z0-9|]+/', ' ', $key );
+
+		return trim( (string) preg_replace( '/\s+/', ' ', $key ) );
+	}
+
+	/**
+	 * Returns the zone ids that exist, out of a list of candidate ids. Used to
+	 * validate a CSV that maps postcodes by zone id rather than by name.
+	 *
+	 * @param array $zone_ids Candidate ids.
+	 * @return array Ids that exist, as integers.
+	 */
+	public static function filter_existing_zone_ids( array $zone_ids ) {
+		global $wpdb;
+
+		$ids = array_filter( array_map( 'absint', $zone_ids ) );
+
+		if ( ! $ids ) {
+			return array();
+		}
+
+		$ids          = array_unique( $ids );
+		$table        = self::zones_table();
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders built above.
+		$found = $wpdb->get_col( $wpdb->prepare( "SELECT zone_id FROM {$table} WHERE zone_id IN ({$placeholders})", array_values( $ids ) ) );
+
+		return array_map( 'absint', (array) $found );
+	}
+
+	/**
 	 * Counts zones, optionally for one country.
 	 *
 	 * @param string $country_code Optional ISO country code.
@@ -276,6 +424,98 @@ class KDNA_WH_DB {
 	 */
 	public static function count_zones( $country_code = '' ) {
 		return self::count_rows( self::zones_table(), $country_code );
+	}
+
+	/**
+	 * Counts zones matching the data browser's filters, so its pagination can
+	 * show a real total rather than only a next link.
+	 *
+	 * @param array $args Same country_code and search as get_zones().
+	 * @return int
+	 */
+	public static function count_zones_filtered( array $args = array() ) {
+		global $wpdb;
+
+		$table  = self::zones_table();
+		$where  = array( '1=1' );
+		$params = array();
+
+		if ( ! empty( $args['country_code'] ) ) {
+			$where[]  = 'country_code = %s';
+			$params[] = self::normalise_country( $args['country_code'] );
+		}
+
+		if ( ! empty( $args['search'] ) ) {
+			$like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$where[]  = '( utility_name LIKE %s OR zone_name LIKE %s )';
+			$params[] = $like;
+			$params[] = $like;
+		}
+
+		$sql = "SELECT COUNT(*) FROM {$table} WHERE " . implode( ' AND ', $where );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		return (int) ( $params ? $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) : $wpdb->get_var( $sql ) );
+	}
+
+	/**
+	 * Counts postcode mappings matching the data browser's filters.
+	 *
+	 * @param array $args Same country_code and search as get_postcode_mappings().
+	 * @return int
+	 */
+	public static function count_mappings_filtered( array $args = array() ) {
+		global $wpdb;
+
+		$table  = self::postcodes_table();
+		$where  = array( '1=1' );
+		$params = array();
+
+		if ( ! empty( $args['country_code'] ) ) {
+			$where[]  = 'country_code = %s';
+			$params[] = self::normalise_country( $args['country_code'] );
+		}
+
+		if ( ! empty( $args['search'] ) ) {
+			$where[]  = 'postcode LIKE %s';
+			$params[] = $wpdb->esc_like( self::normalise_postcode( $args['search'] ) ) . '%';
+		}
+
+		$sql = "SELECT COUNT(*) FROM {$table} WHERE " . implode( ' AND ', $where );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		return (int) ( $params ? $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) : $wpdb->get_var( $sql ) );
+	}
+
+	/**
+	 * Deletes specific zones by id, and any postcode mappings pointing at
+	 * them, so the data browser can remove a selection rather than a whole
+	 * country.
+	 *
+	 * @param array $zone_ids Zone ids to remove.
+	 * @return int Number of zones removed.
+	 */
+	public static function delete_zones( array $zone_ids ) {
+		global $wpdb;
+
+		$ids = array_unique( array_filter( array_map( 'absint', $zone_ids ) ) );
+
+		if ( ! $ids ) {
+			return 0;
+		}
+
+		$zones        = self::zones_table();
+		$postcodes    = self::postcodes_table();
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+		$values       = array_values( $ids );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders built above.
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$postcodes} WHERE zone_id IN ({$placeholders})", $values ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders built above.
+		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$zones} WHERE zone_id IN ({$placeholders})", $values ) );
+
+		return false === $deleted ? 0 : (int) $deleted;
 	}
 
 	/**
@@ -398,6 +638,134 @@ class KDNA_WH_DB {
 	 */
 	public static function count_postcodes( $country_code = '' ) {
 		return self::count_rows( self::postcodes_table(), $country_code );
+	}
+
+	/**
+	 * Returns the postcode and zone pairs that already exist, out of a list of
+	 * candidate postcodes.
+	 *
+	 * The importer calls this once per chunk so that re-uploading the same
+	 * file does not double every mapping. Without it, an append import run
+	 * twice would show every zone twice in a result.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @param array  $postcodes    Normalised postcodes to check.
+	 * @return array Set of "postcode|zone_id" keys, for fast lookup.
+	 */
+	public static function get_existing_mappings( $country_code, array $postcodes ) {
+		global $wpdb;
+
+		$country = self::normalise_country( $country_code );
+		$list    = array_unique( array_filter( array_map( array( __CLASS__, 'normalise_postcode' ), $postcodes ) ) );
+
+		if ( ! $country || ! $list ) {
+			return array();
+		}
+
+		$table        = self::postcodes_table();
+		$placeholders = implode( ', ', array_fill( 0, count( $list ), '%s' ) );
+		$values       = array_merge( array( $country ), array_values( $list ) );
+
+		$sql = "SELECT postcode, zone_id FROM {$table} WHERE country_code = %s AND postcode IN ({$placeholders})";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders built above.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A );
+
+		$existing = array();
+
+		foreach ( (array) $rows as $row ) {
+			$existing[ $row['postcode'] . '|' . (int) $row['zone_id'] ] = true;
+		}
+
+		return $existing;
+	}
+
+	/**
+	 * Fetches postcode mappings with their zone details, for the data browser.
+	 *
+	 * @param array $args {
+	 *     @type string $country_code Restrict to one country.
+	 *     @type string $search       Matches the postcode.
+	 *     @type int    $limit        Default 100.
+	 *     @type int    $offset       Default 0.
+	 * }
+	 * @return array
+	 */
+	public static function get_postcode_mappings( array $args = array() ) {
+		global $wpdb;
+
+		$args = wp_parse_args(
+			$args,
+			array(
+				'country_code' => '',
+				'search'       => '',
+				'limit'        => 100,
+				'offset'       => 0,
+			)
+		);
+
+		$postcodes = self::postcodes_table();
+		$zones     = self::zones_table();
+		$where     = array( '1=1' );
+		$params    = array();
+
+		if ( $args['country_code'] ) {
+			$where[]  = 'p.country_code = %s';
+			$params[] = self::normalise_country( $args['country_code'] );
+		}
+
+		if ( $args['search'] ) {
+			$where[]  = 'p.postcode LIKE %s';
+			$params[] = $wpdb->esc_like( self::normalise_postcode( $args['search'] ) ) . '%';
+		}
+
+		$sql = "SELECT p.id, p.country_code, p.postcode, p.zone_id, z.zone_name, z.utility_name, z.hardness_caco3, z.confidence
+			FROM {$postcodes} AS p
+			LEFT JOIN {$zones} AS z ON z.zone_id = p.zone_id
+			WHERE " . implode( ' AND ', $where ) . '
+			ORDER BY p.country_code ASC, p.postcode ASC';
+
+		$limit = absint( $args['limit'] );
+
+		if ( $limit ) {
+			$sql     .= ' LIMIT %d OFFSET %d';
+			$params[] = $limit;
+			$params[] = absint( $args['offset'] );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- built from placeholders above.
+		$rows = $params ? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
+
+		return array_map( array( __CLASS__, 'cast_zone_row' ), (array) $rows );
+	}
+
+	/**
+	 * Counts mappings that point at a zone which no longer exists. Orphans
+	 * should never occur, since deleting a zone removes its mappings, but a
+	 * hand-edited database or a part-finished import can leave them, and a
+	 * silent orphan means a postcode that matches nothing.
+	 *
+	 * @param string $country_code Optional ISO country code.
+	 * @return int
+	 */
+	public static function count_orphan_mappings( $country_code = '' ) {
+		global $wpdb;
+
+		$postcodes = self::postcodes_table();
+		$zones     = self::zones_table();
+		$country   = self::normalise_country( $country_code );
+
+		$sql = "SELECT COUNT(*) FROM {$postcodes} AS p
+			LEFT JOIN {$zones} AS z ON z.zone_id = p.zone_id
+			WHERE z.zone_id IS NULL";
+
+		if ( $country ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- table names are internal.
+			return (int) $wpdb->get_var( $wpdb->prepare( $sql . ' AND p.country_code = %s', $country ) );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- no user input.
+		return (int) $wpdb->get_var( $sql );
 	}
 
 	/**
@@ -664,7 +1032,11 @@ class KDNA_WH_DB {
 		}
 
 		if ( isset( $data['source_date'] ) ) {
-			$row['source_date'] = self::normalise_date( $data['source_date'] );
+			// null rather than an empty string: $wpdb->insert() turns null
+			// into a real SQL NULL, where '' is rejected by a DATE column
+			// under MySQL strict mode.
+			$date               = self::normalise_date( $data['source_date'] );
+			$row['source_date'] = '' === $date ? null : $date;
 		}
 
 		if ( ! $partial ) {

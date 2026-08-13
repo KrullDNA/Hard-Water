@@ -116,7 +116,13 @@ $kdna_wh_labels = array(
 	<h2><?php esc_html_e( 'Still to come', 'kdna-water-hardness' ); ?></h2>
 
 	<p class="kdna-wh-intro">
-		<?php esc_html_e( 'This screen is intentionally empty of settings for now. Data import and the source link registry arrive in Stage 2, the front-end lookup in Stage 3, and the editable band copy in Stage 4.', 'kdna-water-hardness' ); ?>
+		<?php
+		printf(
+			/* translators: %s: link to the Data Import screen. */
+			esc_html__( 'This screen is intentionally empty of settings for now. Data is managed on the %s screen. The front-end lookup arrives in Stage 3, and the editable band copy in Stage 4.', 'kdna-water-hardness' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=' . KDNA_WH_Admin::MENU_SLUG . '-import' ) ) . '">' . esc_html__( 'Data Import', 'kdna-water-hardness' ) . '</a>'
+		);
+		?>
 	</p>
 
 </div>

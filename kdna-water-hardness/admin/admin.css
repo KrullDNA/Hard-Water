@@ -28,3 +28,204 @@
 	color: #b32d2e;
 	font-weight: 600;
 }
+
+.kdna-wh-wrap .kdna-wh-muted {
+	color: #646970;
+}
+
+.kdna-wh-wrap .kdna-wh-required {
+	color: #b32d2e;
+}
+
+.kdna-wh-wrap .kdna-wh-indent {
+	margin: 0 0 0.75em 1.85em;
+}
+
+.kdna-wh-wrap .kdna-wh-inline-label {
+	margin-left: 0.75em;
+}
+
+.kdna-wh-wrap .kdna-wh-country-input {
+	text-transform: uppercase;
+	width: 5em;
+}
+
+/* Country panels ---------------------------------------------------------- */
+
+.kdna-wh-panel {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	margin-bottom: 1.25em;
+	max-width: 60em;
+}
+
+.kdna-wh-panel-head {
+	padding: 0.85em 1.15em;
+}
+
+.kdna-wh-panel-head h3 {
+	margin: 0 0 0.35em;
+}
+
+.kdna-wh-panel-meta {
+	color: #50575e;
+	margin: 0;
+}
+
+.kdna-wh-panel-meta > span {
+	margin-left: 0.5em;
+}
+
+.kdna-wh-panel details > summary {
+	border-top: 1px solid #dcdcde;
+	cursor: pointer;
+	padding: 0.7em 1.15em;
+	user-select: none;
+}
+
+.kdna-wh-panel-body {
+	border-top: 1px solid #dcdcde;
+	padding: 0.5em 1.15em 1.15em;
+}
+
+.kdna-wh-panel-body h4 {
+	margin-bottom: 0.5em;
+}
+
+.kdna-wh-code {
+	color: #646970;
+	font-size: 0.8em;
+	font-weight: 400;
+	letter-spacing: 0.05em;
+}
+
+.kdna-wh-pill {
+	background: #f0f0f1;
+	border-radius: 9px;
+	color: #3c434a;
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	line-height: 18px;
+	padding: 0 8px;
+	text-transform: uppercase;
+	vertical-align: middle;
+}
+
+.kdna-wh-pill-api {
+	background: #e5f1f8;
+	color: #135e96;
+}
+
+.kdna-wh-pill-stale {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+/* Forms ------------------------------------------------------------------- */
+
+.kdna-wh-inline-form {
+	display: inline-block;
+	margin: 0 0.35em 0 0;
+}
+
+.kdna-wh-danger {
+	color: #b32d2e;
+}
+
+.kdna-wh-link-form label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.2em;
+}
+
+.kdna-wh-field-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5em;
+}
+
+.kdna-wh-field-row > p {
+	margin-top: 0;
+}
+
+.kdna-wh-field-row .description {
+	display: block;
+	font-weight: 400;
+	margin-top: 0.2em;
+	max-width: 22em;
+}
+
+.kdna-wh-filters {
+	margin: 1em 0;
+}
+
+.kdna-wh-count {
+	color: #646970;
+	margin-bottom: 0.5em;
+}
+
+/* Import progress --------------------------------------------------------- */
+
+.kdna-wh-progress {
+	background: #f0f0f1;
+	border-radius: 3px;
+	height: 22px;
+	max-width: 40em;
+	overflow: hidden;
+}
+
+.kdna-wh-progress-bar {
+	background: #2271b1;
+	display: block;
+	height: 100%;
+	transition: width 0.2s ease;
+}
+
+.kdna-wh-summary th {
+	width: 12em;
+}
+
+.kdna-wh-col-row {
+	width: 5em;
+}
+
+/* Mapping preview --------------------------------------------------------- */
+
+.kdna-wh-scroll {
+	margin-bottom: 1.25em;
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.kdna-wh-preview {
+	min-width: 100%;
+	width: auto;
+}
+
+.kdna-wh-preview td,
+.kdna-wh-preview th {
+	white-space: nowrap;
+}
+
+.kdna-wh-sample {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	font-size: 12px;
+	overflow-x: auto;
+	padding: 0.85em;
+}
+
+.kdna-wh-columns {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5em;
+}
+
+.kdna-wh-column {
+	flex: 1 1 24em;
+	min-width: 0;
+}

@@ -3,7 +3,7 @@
  * Plugin Name:       Water Hardness Lookup
  * Plugin URI:        https://krulldna.com/
  * Description:       Front-end postcode lookup returning local tap water hardness, a classification band and brand copy. Brand-agnostic and multi-country by data import.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Krull Design & Advertising
@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * KDNA_WH_DB_VERSION Schema version. Bump this whenever a table changes so the
  *                    upgrade routine knows to re-run dbDelta().
  */
-define( 'KDNA_WH_VERSION', '0.1.0' );
+define( 'KDNA_WH_VERSION', '0.2.0' );
 define( 'KDNA_WH_DB_VERSION', '1.0.0' );
 define( 'KDNA_WH_FILE', __FILE__ );
 define( 'KDNA_WH_PATH', plugin_dir_path( __FILE__ ) );
@@ -43,10 +43,14 @@ define( 'KDNA_WH_SLUG', 'kdna-water-hardness' );
  */
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-db.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-units.php';
+require_once KDNA_WH_PATH . 'includes/class-kdna-wh-sources.php';
 require_once KDNA_WH_PATH . 'includes/class-kdna-wh-activator.php';
 
 if ( is_admin() ) {
+	require_once KDNA_WH_PATH . 'includes/class-kdna-wh-csv.php';
+	require_once KDNA_WH_PATH . 'includes/class-kdna-wh-importer.php';
 	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin.php';
+	require_once KDNA_WH_PATH . 'admin/class-kdna-wh-admin-import.php';
 }
 
 /*
@@ -79,8 +83,36 @@ add_action(
 	}
 );
 
-// Register the admin menu. Front end arrives in Stage 3.
+// Register the admin screens. Front end arrives in Stage 3.
 if ( is_admin() ) {
 	add_action( 'admin_menu', array( 'KDNA_WH_Admin', 'register_menu' ) );
 	add_action( 'admin_enqueue_scripts', array( 'KDNA_WH_Admin', 'enqueue_assets' ) );
+
+	KDNA_WH_Admin_Import::init();
 }
+
+/**
+ * Removes import files left behind by an import that was never finished.
+ *
+ * The event is registered on activation and cleared on deactivation, so a
+ * deactivated plugin leaves no scheduled work behind.
+ */
+add_action( 'kdna_wh_cleanup_imports', array( 'KDNA_WH_Importer', 'cleanup_orphans' ) );
+
+/**
+ * The cleanup callback lives in a class that is only loaded in the admin, so
+ * on a cron request it has to be pulled in explicitly.
+ */
+add_action(
+	'kdna_wh_cleanup_imports',
+	function () {
+		if ( ! class_exists( 'KDNA_WH_Importer' ) ) {
+			require_once KDNA_WH_PATH . 'includes/class-kdna-wh-csv.php';
+			require_once KDNA_WH_PATH . 'includes/class-kdna-wh-importer.php';
+		}
+	},
+	5
+);
+
+// Clear the scheduled cleanup when the plugin is switched off.
+register_deactivation_hook( __FILE__, array( 'KDNA_WH_Activator', 'deactivate' ) );

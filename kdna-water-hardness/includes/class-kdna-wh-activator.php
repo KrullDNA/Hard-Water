@@ -31,6 +31,31 @@ class KDNA_WH_Activator {
 		if ( ! get_option( 'kdna_wh_installed_at' ) ) {
 			update_option( 'kdna_wh_installed_at', current_time( 'mysql' ) );
 		}
+
+		// Gives the source registry the Australian utilities to start from.
+		KDNA_WH_Sources::seed_defaults();
+
+		// Sweeps up CSVs left behind by an import nobody finished.
+		if ( ! wp_next_scheduled( 'kdna_wh_cleanup_imports' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'kdna_wh_cleanup_imports' );
+		}
+	}
+
+	/**
+	 * Runs on deactivation.
+	 *
+	 * Clears the scheduled cleanup and nothing else. Imported data survives,
+	 * because deactivating a plugin must never destroy work that took real
+	 * effort to compile.
+	 *
+	 * @return void
+	 */
+	public static function deactivate() {
+		$timestamp = wp_next_scheduled( 'kdna_wh_cleanup_imports' );
+
+		if ( $timestamp ) {
+			wp_unschedule_event( $timestamp, 'kdna_wh_cleanup_imports' );
+		}
 	}
 
 	/**
