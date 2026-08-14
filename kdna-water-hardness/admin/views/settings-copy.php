@@ -276,6 +276,17 @@ endif;
 	);
 	?>
 
+	<h3><?php esc_html_e( 'Disclaimer', 'kdna-water-hardness' ); ?></h3>
+
+	<p class="description">
+		<?php esc_html_e( 'Shown at the foot of every result, whatever the outcome. This is the line that says a published zone figure is a guide rather than a reading from the visitor\'s own tap, which is both true and the thing that keeps the tool clear of a claim it cannot support. Clear the field to switch it off.', 'kdna-water-hardness' ); ?>
+	</p>
+
+	<p>
+		<label class="screen-reader-text" for="kdna-wh-disclaimer"><?php esc_html_e( 'Disclaimer text', 'kdna-water-hardness' ); ?></label>
+		<textarea name="disclaimer" id="kdna-wh-disclaimer" rows="4" class="large-text"><?php echo esc_textarea( $kdna_wh_config['disclaimer'] ); ?></textarea>
+	</p>
+
 	<p class="submit">
 		<button type="submit" class="button button-primary"><?php esc_html_e( 'Save bands and copy', 'kdna-water-hardness' ); ?></button>
 	</p>

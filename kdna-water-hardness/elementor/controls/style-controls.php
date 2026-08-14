@@ -1598,6 +1598,41 @@ class KDNA_WH_Elementor_Style_Controls {
 			)
 		);
 
+		/*
+		 * The disclaimer gets its own typography and colour rather than
+		 * inheriting the metadata's, because it is the one piece of text on
+		 * the panel that has to stay legible whatever else is done to the
+		 * design. There is deliberately no control to hide it.
+		 */
+		$widget->add_control(
+			'disclaimer_heading',
+			array(
+				'label'     => __( 'Disclaimer', 'kdna-water-hardness' ),
+				'type'      => Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$widget->add_group_control(
+			Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'disclaimer_typography',
+				'selector' => '{{WRAPPER}} .kdna-wh__disclaimer',
+			)
+		);
+
+		$widget->add_control(
+			'disclaimer_colour',
+			array(
+				'label'       => __( 'Disclaimer colour', 'kdna-water-hardness' ),
+				'type'        => Controls_Manager::COLOR,
+				'description' => __( 'Keep this readable against your background. It is the line that qualifies the result.', 'kdna-water-hardness' ),
+				'selectors'   => array(
+					'{{WRAPPER}} .kdna-wh__disclaimer' => 'color: {{VALUE}}; opacity: 1;',
+				),
+			)
+		);
+
 		$widget->add_control(
 			'meta_zone_colour',
 			array(

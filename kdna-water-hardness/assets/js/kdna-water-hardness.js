@@ -286,6 +286,17 @@
 			}
 
 			html += renderZones( result );
+
+			/*
+			 * Last, and on every state. It is the caveat on everything above
+			 * it, so it reads after the answer rather than in front of it, and
+			 * it is not something a display toggle can switch off: the toggles
+			 * choose what detail to show, not whether to qualify a claim.
+			 */
+			if ( result.disclaimer ) {
+				html += '<p class="kdna-wh__disclaimer">' + escapeHtml( result.disclaimer ) + '</p>';
+			}
+
 			html += '</div>';
 
 			resultEl.innerHTML = html;

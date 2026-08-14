@@ -85,7 +85,15 @@ class KDNA_WH_Admin_Settings {
 
 		$warning = self::threshold_warning( $bands );
 
-		KDNA_WH_Bands::save_country( $code, $bands, $copy );
+		/*
+		 * Passed through as it arrives so that an empty box reads as switching
+		 * the disclaimer off, rather than as the field not being submitted.
+		 * The cleaning happens in save_country() with the rest.
+		 */
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitised in save_country().
+		$disclaimer = isset( $_POST['disclaimer'] ) ? wp_unslash( $_POST['disclaimer'] ) : null;
+
+		KDNA_WH_Bands::save_country( $code, $bands, $copy, $disclaimer );
 
 		if ( $warning ) {
 			KDNA_WH_Admin_Import::add_notice( 'warning', $warning );

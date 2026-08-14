@@ -329,6 +329,23 @@
 	white-space: nowrap;
 }
 
+/* Disclaimer -------------------------------------------------------------- */
+
+/*
+ * Smaller than the answer and set apart from it, because it qualifies the
+ * answer rather than competing with it. Not so faint that it fails contrast:
+ * a caveat nobody can read is not a caveat.
+ */
+.kdna-wh__disclaimer {
+	border-top: 1px solid;
+	border-color: color-mix(in srgb, currentColor 20%, transparent);
+	font-size: 0.8em;
+	line-height: 1.5;
+	margin: 1em 0 0;
+	opacity: 0.85;
+	padding-top: 0.75em;
+}
+
 /* Call to action ---------------------------------------------------------- */
 
 .kdna-wh__cta-wrap {

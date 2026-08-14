@@ -387,6 +387,12 @@ class KDNA_WH_Lookup {
 			'min_position'  => null,
 			'max_position'  => null,
 			'copy'          => array(),
+			/*
+			 * Carried on every result, including the ones that name no band.
+			 * A visitor told "we cannot say" is owed the same explanation of
+			 * where the data comes from as one who gets a figure.
+			 */
+			'disclaimer'    => KDNA_WH_Bands::get_disclaimer( $country ),
 		);
 
 		/*

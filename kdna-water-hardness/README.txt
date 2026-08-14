@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -387,6 +387,22 @@ would be worse than no cache at all.
   keeps a contrast ratio of at least 4.5:1 whatever colour you pick
 * Animations are suppressed for anyone who has asked for reduced motion
 
+== The disclaimer ==
+
+Every result ends with a line saying the figure is the water authority's
+published figure for a supply zone, that hardness varies within a zone and over
+time, and that the authority is who to ask for something definitive.
+
+It is on by default and editable per country under Settings, Bands and copy.
+Clearing the field switches it off. The Elementor widget can restyle it, with
+its own typography and colour so it stays legible whatever else is done to the
+design, but there is deliberately no control to hide it: the display toggles
+choose what detail to show, not whether to qualify a claim.
+
+It appears on every outcome, including the ones that name no band. A visitor
+told the answer is inconclusive is owed the same explanation of where the data
+comes from as one who gets a figure.
+
 == Data and privacy ==
 
 The lookup log stores a country code, a postcode, the hardness figure served,
@@ -401,6 +417,12 @@ Invalid postcodes are not logged at all. A typo is not a place, and there is
 nothing geographic to learn from it.
 
 == Changelog ==
+
+= 1.2.0 =
+* A disclaimer on every result, saying the figure is the water authority's
+  published figure for a supply zone rather than a reading from the visitor's
+  own tap. On by default, editable per country, and no widget control offers
+  to hide it.
 
 = 1.1.0 =
 * Source links record what is at the other end, and each row gets a button

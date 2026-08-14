@@ -182,9 +182,38 @@ class KDNA_WH_Bands {
 		}
 
 		return array(
-			'bands' => $bands,
-			'copy'  => $copy,
+			'bands'      => $bands,
+			'copy'       => $copy,
+			'disclaimer' => isset( $stored['disclaimer'] ) ? (string) $stored['disclaimer'] : self::default_disclaimer(),
 		);
+	}
+
+	/**
+	 * The line shown under every result, saying what the figure is and is not.
+	 *
+	 * On by default, and worded for the situation the data is actually in: a
+	 * published figure for a supply zone, not a measurement of the water
+	 * coming out of one person's tap. Hardness varies within a zone, changes
+	 * with the season and with which source a utility is drawing on, and the
+	 * report it came from is a snapshot. Saying so is both accurate and the
+	 * thing that keeps the tool on the right side of a claim.
+	 *
+	 * @return string
+	 */
+	public static function default_disclaimer() {
+		return __( 'This figure comes from the water authority\'s published reporting for your supply zone. Hardness varies within a zone and over time, so treat it as a guide rather than a measurement of your own tap. For a definitive figure, contact your water authority.', 'kdna-water-hardness' );
+	}
+
+	/**
+	 * The disclaimer for one country, empty when it has been switched off.
+	 *
+	 * @param string $country_code ISO country code.
+	 * @return string
+	 */
+	public static function get_disclaimer( $country_code ) {
+		$config = self::get_country( $country_code );
+
+		return trim( (string) $config['disclaimer'] );
 	}
 
 	/**
@@ -195,7 +224,7 @@ class KDNA_WH_Bands {
 	 * @param array  $copy         Copy blocks.
 	 * @return bool
 	 */
-	public static function save_country( $country_code, array $bands, array $copy ) {
+	public static function save_country( $country_code, array $bands, array $copy, $disclaimer = null ) {
 		$country = KDNA_WH_DB::normalise_country( $country_code );
 
 		if ( ! $country ) {
@@ -275,6 +304,14 @@ class KDNA_WH_Bands {
 		$all[ $country ] = array(
 			'bands' => $clean_bands,
 			'copy'  => $clean_copy,
+			/*
+			 * Null means the submission did not include the field, so whatever
+			 * is stored stands. An empty string is someone deliberately
+			 * clearing it, which switches the disclaimer off.
+			 */
+			'disclaimer' => null === $disclaimer
+				? ( isset( $all[ $country ]['disclaimer'] ) ? $all[ $country ]['disclaimer'] : self::default_disclaimer() )
+				: wp_kses_post( trim( (string) $disclaimer ) ),
 		);
 
 		$saved = update_option( self::OPTION, $all, false );
