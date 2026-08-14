@@ -39,10 +39,14 @@ On how the figures would be presented:
 
 I appreciate the database is an operational system rather than an open data
 product, and that the underlying results belong to the individual water
-utilities. If an extract isn't something you're able to release, I'd be
-grateful for a steer on the right route — whether that's approaching the local
-water utilities directly, a formal information access request, or simply
-working from the annual reports councils publish.
+utilities. I'm also conscious this may not be the right inbox for a request of
+this kind — if there's someone better placed to answer it, I'd be grateful if
+you could pass this on, or point me their way.
+
+If an extract isn't something that can be released at all, a steer on the right
+route would be just as useful — whether that's approaching the local water
+utilities directly, a formal information access request, or simply working from
+the annual reports councils publish.
 
 Happy to take whatever format is easiest at your end, including a plain CSV or
 spreadsheet export.
@@ -54,3 +58,20 @@ Kind regards,
 Nick Krull
 KDNA
 hello@krulldna.com
+
+---
+
+## Before sending
+
+The address is published on the NSW drinking water database page and checks out.
+It is, however, the technical support inbox for the database itself — password
+resets and system help for the utilities and laboratories that enter results —
+rather than a public data request desk.
+
+Worth phoning the Water Unit first on **02 9391 9939** to ask who handles this.
+An email addressed to a named person is treated very differently from one that
+arrives cold in a support queue.
+
+The Water Unit sits in the Environmental Health Branch, NSW Health, 1 Reserve
+Road, St Leonards NSW 2065. Wider branch contacts are at
+https://www.health.nsw.gov.au/environment/Pages/contacts.aspx
