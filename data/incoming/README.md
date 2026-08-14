@@ -58,3 +58,22 @@ opposite of what the tool needs.
 The document itself says where the data is: "In-depth information on the
 performance of each water agency can be found in their annual reports available
 on their websites." That is the route — one report per corporation.
+
+### barwon-water-drinking-water-quality-2023-24.pdf
+
+**Usable. Thirty localities extracted and merged, marked `verified`.**
+
+Table 20, "Hardness (total)", page 49. Monthly sampling per water quality
+locality with minimum, maximum and average; the average is what went into the
+dataset. Table 1 on pages 11 to 12 gives the population each locality serves,
+which is how the Geelong postcodes were allocated: Lovely Banks is the largest
+zone at 64,770 people and covers central and northern Geelong.
+
+This is the shape every other Victorian corporation's report should take, so
+the same extraction will work on them.
+
+One thing worth seeing: postcode 3213 covers five Barwon zones, and they do not
+agree. Anakie and Lovely Banks are 47, Batesford and Moorabool are 89. That
+crosses the soft/moderate boundary, so the tool returns inconclusive for 3213
+rather than picking one. It is the many-to-many case the brief was built around,
+turning up unprompted in the first real dataset.

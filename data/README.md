@@ -4,9 +4,13 @@ Two CSVs, ready to import, covering the metropolitan areas and a handful of
 regional centres. Import `au-zones.csv` first, then `au-postcodes.csv`, because
 a mapping has to attach to a zone that already exists.
 
-- **30 supply zones** across all eight states and territories
-- **1,476 postcodes** mapped to them
+- **60 supply zones** across all eight states and territories
+- **1,503 postcodes** mapped to them
 - Roughly **80% of the Australian population**
+
+Thirty of the zones are Barwon Water's, read out of their 2023-24 report and
+marked `verified`. Those return a real band today. The other thirty are still
+`estimated` and return inconclusive until checked.
 
 ## Read this before going live
 
