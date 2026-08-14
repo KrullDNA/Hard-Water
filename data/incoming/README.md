@@ -37,3 +37,24 @@ The two that buy the most coverage per document:
 
 Everything else is a long tail: individual councils in regional Queensland,
 Western Australia and South Australia, each covering one town.
+
+## Already checked, and what came of it
+
+### vic-safe-drinking-water-act-annual-report-2024-25.pdf
+
+**No hardness data. Nothing usable.** Checked all 41 pages: the words hardness,
+CaCO₃, calcium, magnesium and alkalinity do not appear once.
+
+It is the regulator's compliance report, not a water quality dataset. What it
+reports is breaches: E. coli, turbidity, trihalomethanes, manganese and lead.
+Hardness is absent because Victoria sets no standard for it — the Safe Drinking
+Water Regulations cover health parameters and a short list of aesthetic ones,
+and hardness is not among them, so the regulator never collects it.
+
+Appendix 3 looked promising and is not: "regulated water supplies" means the
+*non-drinking* supplies piped for gardens and toilet flushing, which is the
+opposite of what the tool needs.
+
+The document itself says where the data is: "In-depth information on the
+performance of each water agency can be found in their annual reports available
+on their websites." That is the route — one report per corporation.
