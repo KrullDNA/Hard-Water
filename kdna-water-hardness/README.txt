@@ -4,7 +4,7 @@ Tags: water hardness, postcode, lookup, elementor
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,9 +52,11 @@ Stage 2, complete. CSV import, source registry and data management.
 * Large files imported in blocks across several requests, so a big postcode
   file does not have to finish inside one PHP timeout
 * Re-importing the same file never doubles the data
-* Source link registry per country: label, URL, region, last checked and
-  publication date, with counts, last import date and a review flag where the
-  newest source is more than 18 months old
+* Source link registry per country: label, URL, region, format, last checked
+  and publication date, with counts, last import date and a review flag where
+  the newest source is more than 18 months old
+* A button on every source row that opens the data itself, labelled by what is
+  actually there, so nobody clicks Download CSV and gets a search box
 * Data browser filterable by country, with deletion by selection or by country
 
 Stage 3, complete. Front-end lookup.
@@ -267,6 +269,61 @@ version of it. Both render through the same function, so a site with no page
 builder gets the same markup, the same script and the same behaviour. What the
 widget adds is control over appearance, not over what the tool does.
 
+== Australian data sources ==
+
+The Countries and sources tab arrives pre-loaded with the Australian water
+authorities, each pointing at the data itself rather than at a home page, with
+a button on every row that opens it.
+
+Two of them are machine readable and can be imported after a column mapping:
+
+* SA Water, water quality systems and suburbs, CSV on data.sa.gov.au
+* SA Water, water quality performance results, CSV on data.gov.au
+
+The rest are annual reports as PDFs. Hardness is in the aesthetic tables, not
+the health ones, which is where most people look first:
+
+* Water Corporation, four regional table sets covering Perth, the South West,
+  the Goldfields and Agricultural region, and the North West
+* Hunter Water, typical composition of treated water
+* Icon Water, TasWater, Power and Water, and Urban Utilities annual reports
+* Health Victoria's annual report, which covers all the Victorian corporations
+  in one document
+
+Four publish no file at all. They are search tools, and the figure has to be
+read off the screen one postcode at a time: Sydney Water, Seqwater, Unitywater,
+and the NSW Health drinking water database that covers the regional councils.
+
+Expect to transcribe. Across the sector as a whole there is no national
+hardness dataset, and the two CSVs above are the exception rather than the
+pattern. The registry exists so that the transcription only has to be worked
+out once.
+
+Direct file links move when a publisher reorganises their site. Set the link
+checked date when you confirm one still opens, and the registry will tell you
+which ones you have not looked at lately.
+
+== Adding a country ==
+
+Two ways, and the right one depends on which you have first, the data or the
+sources.
+
+If you have the data, import a zones CSV with the country code in it. The
+country appears on the Countries and sources tab by itself.
+
+If you are still gathering, use Add a country at the bottom of that tab. That
+creates the country up front, so you have somewhere to record source documents
+and write the band copy before any figures exist.
+
+Either way, any two-letter ISO 3166-1 code works. The plugin knows the postcode
+rules for Australia, New Zealand, the United Kingdom, the United States and
+Canada, and gives those the right field label, example, keyboard and validation
+pattern. Anywhere else gets permissive validation until someone adds a rule for
+it through the kdna_wh_country_config filter.
+
+Each country carries its own bands, its own copy, its own source registry and
+its own source type, so nothing about adding one touches another.
+
 == Importing data ==
 
 Import the zones file first, then the postcode mappings, because a mapping has
@@ -344,6 +401,14 @@ Invalid postcodes are not logged at all. A typo is not a place, and there is
 nothing geographic to learn from it.
 
 == Changelog ==
+
+= 1.1.0 =
+* Source links record what is at the other end, and each row gets a button
+  that opens it: Download latest CSV, Open latest PDF, or Open latest data.
+* The Australian registry is seeded with sixteen real sources pointing at the
+  actual files rather than at home pages.
+* Add a country from the Countries and sources tab, without waiting for an
+  import to create it.
 
 = 1.0.0 =
 * Stage 7. Result caching with automatic invalidation, a cache lifetime

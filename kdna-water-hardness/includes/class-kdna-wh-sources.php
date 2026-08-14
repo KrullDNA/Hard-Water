@@ -380,8 +380,20 @@ class KDNA_WH_Sources {
 	 */
 	public static function get_links( $country_code ) {
 		$config = self::get_country( $country_code );
+		$links  = is_array( $config['links'] ) ? $config['links'] : array();
 
-		return is_array( $config['links'] ) ? $config['links'] : array();
+		/*
+		 * Links recorded before the format was tracked have no format. They
+		 * are filled in here rather than migrated, so an upgrade does not have
+		 * to rewrite the option to keep the admin free of notices.
+		 */
+		foreach ( $links as $id => $link ) {
+			if ( ! isset( $link['format'] ) ) {
+				$links[ $id ]['format'] = 'web';
+			}
+		}
+
+		return $links;
 	}
 
 	/**
@@ -398,6 +410,65 @@ class KDNA_WH_Sources {
 	}
 
 	/**
+	 * What can be at the other end of a source link, and what to call it.
+	 *
+	 * Worth recording, because most water authorities do not publish a CSV.
+	 * They publish an annual report as a PDF, or a page you search by suburb.
+	 * Knowing which is which is the difference between a button that opens a
+	 * spreadsheet and a button that opens forty pages of appendices.
+	 *
+	 * @return array Format key to label.
+	 */
+	public static function formats() {
+		return array(
+			'csv'  => __( 'CSV', 'kdna-water-hardness' ),
+			'xlsx' => __( 'Spreadsheet', 'kdna-water-hardness' ),
+			'pdf'  => __( 'PDF report', 'kdna-water-hardness' ),
+			'web'  => __( 'Web page', 'kdna-water-hardness' ),
+			'api'  => __( 'API', 'kdna-water-hardness' ),
+		);
+	}
+
+	/**
+	 * Reduces whatever was submitted to one of the known formats.
+	 *
+	 * A web page is the assumption, because it is what most of these links
+	 * turn out to be and it is the claim least likely to be wrong.
+	 *
+	 * @param string $format Raw value.
+	 * @return string
+	 */
+	private static function clean_format( $format ) {
+		$format = sanitize_key( $format );
+
+		return isset( self::formats()[ $format ] ) ? $format : 'web';
+	}
+
+	/**
+	 * What the download button should say for a given format.
+	 *
+	 * The label is the format's own, rather than "Download latest CSV" on
+	 * everything, because a button promising a CSV that opens a PDF is worse
+	 * than no button.
+	 *
+	 * @param string $format Format key.
+	 * @return string
+	 */
+	public static function download_label( $format ) {
+		$labels = array(
+			'csv'  => __( 'Download latest CSV', 'kdna-water-hardness' ),
+			'xlsx' => __( 'Download latest spreadsheet', 'kdna-water-hardness' ),
+			'pdf'  => __( 'Open latest PDF', 'kdna-water-hardness' ),
+			'web'  => __( 'Open latest data', 'kdna-water-hardness' ),
+			'api'  => __( 'Open API endpoint', 'kdna-water-hardness' ),
+		);
+
+		$format = self::clean_format( $format );
+
+		return $labels[ $format ];
+	}
+
+	/**
 	 * Adds a link, or updates one when an id is supplied.
 	 *
 	 * @param string $country_code ISO country code.
@@ -408,6 +479,8 @@ class KDNA_WH_Sources {
 	 *     @type string $region       Optional state or area covered.
 	 *     @type string $last_checked Date the link was last confirmed working.
 	 *     @type string $data_date    Publication date of the report in use.
+	 *     @type string $format       What is at the other end: csv, xlsx, pdf,
+	 *                                web or api.
 	 * }
 	 * @return string|WP_Error The link id.
 	 */
@@ -419,7 +492,7 @@ class KDNA_WH_Sources {
 		}
 
 		$label = isset( $data['label'] ) ? sanitize_text_field( $data['label'] ) : '';
-		$url   = isset( $data['url'] ) ? esc_url_raw( trim( (string) $data['url'] ) ) : '';
+		$url = isset( $data['url'] ) ? esc_url_raw( trim( (string) $data['url'] ) ) : '';
 
 		if ( '' === $label ) {
 			return new WP_Error( 'kdna_wh_link_no_label', __( 'A source link needs a label, so the next person knows what it is.', 'kdna-water-hardness' ) );
@@ -451,6 +524,7 @@ class KDNA_WH_Sources {
 			'region'       => isset( $data['region'] ) ? sanitize_text_field( $data['region'] ) : '',
 			'last_checked' => self::clean_date( isset( $data['last_checked'] ) ? $data['last_checked'] : '' ),
 			'data_date'    => self::clean_date( isset( $data['data_date'] ) ? $data['data_date'] : '' ),
+			'format'       => self::clean_format( isset( $data['format'] ) ? $data['format'] : '' ),
 		);
 
 		$config['links'] = $links;
@@ -639,48 +713,212 @@ class KDNA_WH_Sources {
 	}
 
 	/**
-	 * Seeds the Australian utility links on first use.
+	 * The version of the seeded link set. Raise it when the list below
+	 * changes, and the new entries are added to existing installations
+	 * without touching what anyone has edited.
+	 */
+	const SEED_VERSION = 2;
+
+	/**
+	 * The Australian water authorities and where each publishes its data.
 	 *
-	 * These are the water authorities whose published reports the Australian
-	 * figures are compiled from. Each is recorded at its primary web address,
-	 * with no publication date, because the exact report URL and its date are
-	 * only known once the data is actually compiled. Every one will show as
-	 * needing review until someone fills those in, which is the correct state
-	 * for a registry nobody has verified yet.
+	 * Every URL here points at the data itself: the CSV, or the PDF whose
+	 * tables carry the hardness figures. Where an authority publishes no file
+	 * at all, and several of them do not, the link is the search tool that
+	 * takes its place and the format says so, because a button promising a
+	 * download that opens a search box is worse than an honest label.
+	 *
+	 * Only two of these are machine readable. The rest are annual reports
+	 * whose figures have to be read out by hand before they can be imported.
+	 * That is the state of the sector, not an omission here.
+	 *
+	 * Direct file links move when a publisher reorganises. That is what the
+	 * link checked date is for: the registry flags what has not been
+	 * confirmed lately rather than pretending URLs are permanent.
+	 *
+	 * @return array
+	 */
+	public static function default_links() {
+		return array(
+
+			/*
+			 * Machine readable. The only two in the country that can be
+			 * imported without transcribing a report first.
+			 */
+			array(
+				'label'  => 'SA Water, water quality systems and suburbs',
+				'url'    => 'https://data.sa.gov.au/data/dataset/996ec2ae-d52c-4d7e-be9c-d4dab1c1aa45/resource/097c6b91-40a3-43cc-9ef1-e9e48b7b7f07/download/water-quality-systems-and-suburbs-29-9-2025.csv',
+				'region' => 'SA',
+				'format' => 'csv',
+				'date'   => '2025-09-29',
+			),
+			array(
+				'label'  => 'SA Water, water quality performance results',
+				'url'    => 'https://data.gov.au/data/dataset/water-quality1',
+				'region' => 'SA',
+				'format' => 'csv',
+				'date'   => '',
+			),
+
+			/*
+			 * Annual reports. Hardness is in the aesthetic tables, not the
+			 * health ones, which is where people usually look first.
+			 */
+			array(
+				'label'  => 'Water Corporation, Perth aesthetic tables',
+				'url'    => 'https://www.watercorporation.com.au/-/media/WaterCorp/Documents/About-us/Our-performance/Drinking-Water-Quality/Dwq-annual-report-perth-aesthetic-tables.pdf',
+				'region' => 'WA, Perth',
+				'format' => 'pdf',
+				'date'   => '2025-06-30',
+			),
+			array(
+				'label'  => 'Water Corporation, South West aesthetic tables',
+				'url'    => 'https://www.watercorporation.com.au/-/media/WaterCorp/Documents/About-us/Our-performance/Drinking-Water-Quality/Dwq-annual-report-south-west-aesthetic-tables.pdf',
+				'region' => 'WA, South West',
+				'format' => 'pdf',
+				'date'   => '2025-06-30',
+			),
+			array(
+				'label'  => 'Water Corporation, Goldfields and Agricultural aesthetic tables',
+				'url'    => 'https://www.watercorporation.com.au/-/media/WaterCorp/Documents/About-us/Our-performance/Drinking-Water-Quality/Dwq-annual-report-goldfields-and-ag-aesthetic-tables.pdf',
+				'region' => 'WA, Goldfields and Agricultural',
+				'format' => 'pdf',
+				'date'   => '2025-06-30',
+			),
+			array(
+				'label'  => 'Water Corporation, North West aesthetic tables',
+				'url'    => 'https://www.watercorporation.com.au/-/media/WaterCorp/Documents/About-us/Our-performance/Drinking-Water-Quality/Dwq-annual-report-north-west-aesthetic-tables.pdf',
+				'region' => 'WA, North West',
+				'format' => 'pdf',
+				'date'   => '2025-06-30',
+			),
+			array(
+				'label'  => 'Hunter Water, typical composition of treated water',
+				'url'    => 'https://www.hunterwater.com.au/documents/assets/src/uploads/documents/Fact-Sheets/Water-Quality/Typical-Composition-Table-Hunter-Water-s-Sources-CURRENT-Updated-December-2018.pdf',
+				'region' => 'NSW, Hunter',
+				'format' => 'pdf',
+				'date'   => '2018-12-01',
+			),
+			array(
+				'label'  => 'Icon Water, drinking water quality report',
+				'url'    => 'https://www.iconwater.com.au/sites/default/files/2025-10/Drinking%20Water%20Quality%20Report%202024-25.pdf',
+				'region' => 'ACT',
+				'format' => 'pdf',
+				'date'   => '2025-06-30',
+			),
+			array(
+				'label'  => 'TasWater, annual drinking water quality report',
+				'url'    => 'https://www.taswater.com.au/ArticleDocuments/286/TasWater%20Annual%20Drinking%20Water%20Quality%20Report%202023-24.pdf.aspx',
+				'region' => 'TAS',
+				'format' => 'pdf',
+				'date'   => '2024-06-30',
+			),
+			array(
+				'label'  => 'Power and Water, drinking water quality report',
+				'url'    => 'https://www.powerwater.com.au/__data/assets/pdf_file/0034/355939/2023-Power-and-Water-Drinking-Water-Quality-Report.pdf',
+				'region' => 'NT',
+				'format' => 'pdf',
+				'date'   => '2023-12-31',
+			),
+			array(
+				'label'  => 'Urban Utilities, annual drinking water performance report',
+				'url'    => 'https://www.urbanutilities.com.au/sfsites/c/cms/delivery/media/MCK4FTGHWMBRF5XCB334PN7PHPIQ',
+				'region' => 'QLD, Brisbane and Ipswich',
+				'format' => 'pdf',
+				'date'   => '2024-06-30',
+			),
+			array(
+				'label'  => 'Health Victoria, annual report on drinking water quality',
+				'url'    => 'https://www.health.vic.gov.au/water/drinking-water-quality-annual-reports',
+				'region' => 'VIC, all corporations',
+				'format' => 'pdf',
+				'date'   => '',
+			),
+
+			/*
+			 * No file published. These are search tools, and the figure has to
+			 * be read off the screen one postcode at a time.
+			 */
+			array(
+				'label'  => 'Sydney Water, water analysis by suburb',
+				'url'    => 'https://www.sydneywater.com.au/water-the-environment/how-we-manage-sydney-s-water/safe-drinking-water/water-analysis.html',
+				'region' => 'NSW, Sydney',
+				'format' => 'web',
+				'date'   => '',
+			),
+			array(
+				'label'  => 'Seqwater, water quality report by area',
+				'url'    => 'https://www.seqwater.com.au/water-quality-report',
+				'region' => 'QLD, South East',
+				'format' => 'web',
+				'date'   => '',
+			),
+			array(
+				'label'  => 'Unitywater, what is in your water',
+				'url'    => 'https://www.unitywater.com/about-us/our-business/water-quality/whats-in-your-water',
+				'region' => 'QLD, Sunshine Coast and Moreton Bay',
+				'format' => 'web',
+				'date'   => '',
+			),
+			array(
+				'label'  => 'NSW Health, drinking water database',
+				'url'    => 'https://www.health.nsw.gov.au/environment/water/Pages/drinking-water-database.aspx',
+				'region' => 'NSW, regional councils',
+				'format' => 'web',
+				'date'   => '',
+			),
+			array(
+				'label'  => 'qldwater, reporting and benchmarking',
+				'url'    => 'https://qldwater.com.au/reporting',
+				'region' => 'QLD, regional councils',
+				'format' => 'web',
+				'date'   => '',
+			),
+		);
+	}
+
+	/**
+	 * Seeds the Australian utility links, and tops them up on upgrade.
+	 *
+	 * No publication date is recorded, because the date belongs to whichever
+	 * report was actually used, and that is only known once someone compiles
+	 * the data. Every entry shows as needing review until then, which is the
+	 * correct state for a registry nobody has verified yet.
+	 *
+	 * Matching is by URL, so a link someone has renamed, re-dated or pointed
+	 * somewhere better is never overwritten and never duplicated.
 	 *
 	 * @return void
 	 */
 	public static function seed_defaults() {
-		if ( get_option( 'kdna_wh_sources_seeded' ) ) {
+		if ( (int) get_option( 'kdna_wh_sources_seeded' ) >= self::SEED_VERSION ) {
 			return;
 		}
 
-		$utilities = array(
-			array( 'Water Corporation', 'https://www.watercorporation.com.au/', 'WA' ),
-			array( 'SA Water', 'https://www.sawater.com.au/', 'SA' ),
-			array( 'Sydney Water', 'https://www.sydneywater.com.au/', 'NSW' ),
-			array( 'Yarra Valley Water', 'https://www.yvw.com.au/', 'VIC' ),
-			array( 'South East Water', 'https://southeastwater.com.au/', 'VIC' ),
-			array( 'Greater Western Water', 'https://www.gww.com.au/', 'VIC' ),
-			array( 'Seqwater', 'https://www.seqwater.com.au/', 'QLD' ),
-			array( 'Urban Utilities', 'https://urbanutilities.com.au/', 'QLD' ),
-			array( 'Icon Water', 'https://www.iconwater.com.au/', 'ACT' ),
-			array( 'TasWater', 'https://www.taswater.com.au/', 'TAS' ),
-			array( 'Power and Water', 'https://www.powerwater.com.au/', 'NT' ),
-		);
+		$existing = array();
 
-		foreach ( $utilities as $utility ) {
+		foreach ( self::get_links( 'AU' ) as $link ) {
+			$existing[ untrailingslashit( $link['url'] ) ] = true;
+		}
+
+		foreach ( self::default_links() as $utility ) {
+			if ( isset( $existing[ untrailingslashit( $utility['url'] ) ] ) ) {
+				continue;
+			}
+
 			self::save_link(
 				'AU',
 				array(
-					'label'  => $utility[0],
-					'url'    => $utility[1],
-					'region' => $utility[2],
+					'label'     => $utility['label'],
+					'url'       => $utility['url'],
+					'region'    => $utility['region'],
+					'format'    => $utility['format'],
+					'data_date' => $utility['date'],
 				)
 			);
 		}
 
-		update_option( 'kdna_wh_sources_seeded', 1, false );
+		update_option( 'kdna_wh_sources_seeded', self::SEED_VERSION, false );
 	}
 
 	/**

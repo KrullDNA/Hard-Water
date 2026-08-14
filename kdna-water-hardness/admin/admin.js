@@ -34,7 +34,8 @@
 					'.kdna-wh-link-url': button.dataset.url,
 					'.kdna-wh-link-region': button.dataset.region,
 					'.kdna-wh-link-data-date': button.dataset.dataDate,
-					'.kdna-wh-link-last-checked': button.dataset.lastChecked
+					'.kdna-wh-link-last-checked': button.dataset.lastChecked,
+					'.kdna-wh-link-format': button.dataset.format
 				};
 
 				Object.keys( fields ).forEach( function ( selector ) {

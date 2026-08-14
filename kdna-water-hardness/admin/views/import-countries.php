@@ -112,6 +112,7 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 								<tr>
 									<th scope="col"><?php esc_html_e( 'Label', 'kdna-water-hardness' ); ?></th>
 									<th scope="col"><?php esc_html_e( 'Region', 'kdna-water-hardness' ); ?></th>
+									<th scope="col"><?php esc_html_e( 'Format', 'kdna-water-hardness' ); ?></th>
 									<th scope="col"><?php esc_html_e( 'Data published', 'kdna-water-hardness' ); ?></th>
 									<th scope="col"><?php esc_html_e( 'Link checked', 'kdna-water-hardness' ); ?></th>
 									<th scope="col"><?php esc_html_e( 'Actions', 'kdna-water-hardness' ); ?></th>
@@ -126,6 +127,12 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 											</a>
 										</td>
 										<td><?php echo esc_html( $kdna_wh_link['region'] ? $kdna_wh_link['region'] : '—' ); ?></td>
+										<td>
+											<?php
+											$kdna_wh_formats = KDNA_WH_Sources::formats();
+											echo esc_html( isset( $kdna_wh_formats[ $kdna_wh_link['format'] ] ) ? $kdna_wh_formats[ $kdna_wh_link['format'] ] : $kdna_wh_formats['web'] );
+											?>
+										</td>
 										<td>
 											<?php if ( $kdna_wh_link['data_date'] ) : ?>
 												<?php echo esc_html( mysql2date( get_option( 'date_format' ), $kdna_wh_link['data_date'] ) ); ?>
@@ -143,6 +150,21 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 											?>
 										</td>
 										<td>
+											<?php
+											/*
+											 * The reason the registry exists is to get back to the
+											 * source, so that is the button rather than a link
+											 * buried in the label. It opens in a new tab: losing
+											 * the admin screen you were working on to a 40 page
+											 * PDF is nobody's idea of a good time.
+											 */
+											?>
+											<a class="button button-small" href="<?php echo esc_url( $kdna_wh_link['url'] ); ?>"
+												target="_blank" rel="noopener noreferrer">
+												<?php echo esc_html( KDNA_WH_Sources::download_label( $kdna_wh_link['format'] ) ); ?>
+												<span class="screen-reader-text"><?php esc_html_e( '(opens in a new tab)', 'kdna-water-hardness' ); ?></span>
+											</a>
+
 											<button type="button" class="button-link kdna-wh-edit-link"
 												data-target="kdna-wh-link-form-<?php echo esc_attr( $kdna_wh_code ); ?>"
 												data-id="<?php echo esc_attr( $kdna_wh_link['id'] ); ?>"
@@ -150,7 +172,8 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 												data-url="<?php echo esc_attr( $kdna_wh_link['url'] ); ?>"
 												data-region="<?php echo esc_attr( $kdna_wh_link['region'] ); ?>"
 												data-last-checked="<?php echo esc_attr( $kdna_wh_link['last_checked'] ); ?>"
-												data-data-date="<?php echo esc_attr( $kdna_wh_link['data_date'] ); ?>">
+												data-data-date="<?php echo esc_attr( $kdna_wh_link['data_date'] ); ?>"
+												data-format="<?php echo esc_attr( $kdna_wh_link['format'] ); ?>">
 												<?php esc_html_e( 'Edit', 'kdna-water-hardness' ); ?>
 											</button>
 
@@ -195,6 +218,16 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 							<label for="kdna-wh-url-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'URL', 'kdna-water-hardness' ); ?></label>
 							<input type="url" name="url" id="kdna-wh-url-<?php echo esc_attr( $kdna_wh_code ); ?>" class="large-text kdna-wh-link-url"
 								placeholder="https://" required>
+						</p>
+
+						<p>
+							<label for="kdna-wh-format-<?php echo esc_attr( $kdna_wh_code ); ?>"><?php esc_html_e( 'What is at the other end', 'kdna-water-hardness' ); ?></label>
+							<select name="format" id="kdna-wh-format-<?php echo esc_attr( $kdna_wh_code ); ?>" class="kdna-wh-link-format">
+								<?php foreach ( KDNA_WH_Sources::formats() as $kdna_wh_key => $kdna_wh_name ) : ?>
+									<option value="<?php echo esc_attr( $kdna_wh_key ); ?>"><?php echo esc_html( $kdna_wh_name ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<span class="description"><?php esc_html_e( 'Sets what the button on the row above says, so nobody clicks Download CSV and gets a search box.', 'kdna-water-hardness' ); ?></span>
 						</p>
 
 						<div class="kdna-wh-field-row">
@@ -365,3 +398,61 @@ $kdna_wh_open = isset( $_GET['country'] ) ? KDNA_WH_DB::normalise_country( wp_un
 	<?php endforeach; ?>
 
 <?php endif; ?>
+
+<div class="kdna-wh-panel">
+
+	<div class="kdna-wh-panel-head">
+		<h3><?php esc_html_e( 'Add a country', 'kdna-water-hardness' ); ?></h3>
+	</div>
+
+	<div class="kdna-wh-panel-body">
+
+		<p class="kdna-wh-intro">
+			<?php esc_html_e( 'Importing a zones CSV for a new country adds it here by itself. Add it up front instead when you want somewhere to record the source documents while you are still gathering them, or to write the band copy before any data exists.', 'kdna-water-hardness' ); ?>
+		</p>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'kdna_wh_add_country' ); ?>
+			<input type="hidden" name="action" value="kdna_wh_add_country">
+
+			<p>
+				<label for="kdna-wh-new-country"><?php esc_html_e( 'Country', 'kdna-water-hardness' ); ?></label>
+				<select name="country" id="kdna-wh-new-country">
+					<?php
+					/*
+					 * The countries whose postcode rules the plugin already
+					 * knows come first, because picking one of those gets the
+					 * right field label, example and validation for free.
+					 */
+					$kdna_wh_known = KDNA_WH_Countries::available();
+
+					foreach ( $kdna_wh_known as $kdna_wh_option ) :
+						if ( in_array( $kdna_wh_option, $kdna_wh_countries, true ) ) {
+							continue;
+						}
+						?>
+						<option value="<?php echo esc_attr( $kdna_wh_option ); ?>">
+							<?php echo esc_html( KDNA_WH_Sources::country_name( $kdna_wh_option ) . ' (' . $kdna_wh_option . ')' ); ?>
+						</option>
+					<?php endforeach; ?>
+					<option value="other"><?php esc_html_e( 'Somewhere else…', 'kdna-water-hardness' ); ?></option>
+				</select>
+			</p>
+
+			<p>
+				<label for="kdna-wh-new-country-code"><?php esc_html_e( 'Or a country code', 'kdna-water-hardness' ); ?></label>
+				<input type="text" name="country_code" id="kdna-wh-new-country-code" class="small-text"
+					maxlength="2" size="2" placeholder="<?php esc_attr_e( 'IE', 'kdna-water-hardness' ); ?>"
+					pattern="[A-Za-z]{2}">
+				<span class="description">
+					<?php esc_html_e( 'Two letters, ISO 3166-1. Any country works. One the plugin does not know the postcode rules for gets permissive validation until you add them.', 'kdna-water-hardness' ); ?>
+				</span>
+			</p>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Add country', 'kdna-water-hardness' ); ?></button>
+			</p>
+		</form>
+
+	</div>
+</div>

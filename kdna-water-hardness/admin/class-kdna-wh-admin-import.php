@@ -31,6 +31,7 @@ class KDNA_WH_Admin_Import {
 			'kdna_wh_save_link'    => 'handle_save_link',
 			'kdna_wh_delete_link'  => 'handle_delete_link',
 			'kdna_wh_save_country' => 'handle_save_country',
+			'kdna_wh_add_country'  => 'handle_add_country',
 			'kdna_wh_delete_data'  => 'handle_delete_data',
 			'kdna_wh_delete_zones' => 'handle_delete_zones',
 			'kdna_wh_clear_api_cache' => 'handle_clear_api_cache',
@@ -338,6 +339,7 @@ class KDNA_WH_Admin_Import {
 				'region'       => isset( $_POST['region'] ) ? sanitize_text_field( wp_unslash( $_POST['region'] ) ) : '',
 				'last_checked' => isset( $_POST['last_checked'] ) ? sanitize_text_field( wp_unslash( $_POST['last_checked'] ) ) : '',
 				'data_date'    => isset( $_POST['data_date'] ) ? sanitize_text_field( wp_unslash( $_POST['data_date'] ) ) : '',
+				'format'       => isset( $_POST['format'] ) ? sanitize_key( wp_unslash( $_POST['format'] ) ) : '',
 			)
 		);
 
@@ -376,6 +378,77 @@ class KDNA_WH_Admin_Import {
 			array(
 				'tab'     => 'countries',
 				'country' => KDNA_WH_DB::normalise_country( $country ),
+			)
+		);
+	}
+
+	/**
+	 * Adds a country to the registry before any data exists for it.
+	 *
+	 * Importing a zones CSV already creates the country. This is for the other
+	 * order of work: recording the source documents, or writing the band copy,
+	 * while the data is still being gathered.
+	 *
+	 * @return void
+	 */
+	public static function handle_add_country() {
+		self::guard( 'kdna_wh_add_country' );
+
+		$typed    = isset( $_POST['country_code'] ) ? sanitize_text_field( wp_unslash( $_POST['country_code'] ) ) : '';
+		$selected = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
+
+		// The typed code wins. Someone who filled it in meant it, whatever the
+		// select happened to be showing.
+		$code = KDNA_WH_DB::normalise_country( $typed );
+
+		if ( ! $code && 'other' !== $selected ) {
+			$code = KDNA_WH_DB::normalise_country( $selected );
+		}
+
+		if ( ! $code ) {
+			self::add_notice( 'error', __( 'Enter a two letter country code, or pick a country from the list.', 'kdna-water-hardness' ) );
+			self::redirect( array( 'tab' => 'countries' ) );
+		}
+
+		if ( in_array( $code, KDNA_WH_Sources::get_known_countries(), true ) ) {
+			self::add_notice(
+				'warning',
+				sprintf(
+					/* translators: %s: country name. */
+					__( '%s is already listed.', 'kdna-water-hardness' ),
+					KDNA_WH_Sources::country_name( $code )
+				)
+			);
+
+			self::redirect(
+				array(
+					'tab'     => 'countries',
+					'country' => $code,
+				)
+			);
+		}
+
+		/*
+		 * Saving the default configuration is what creates the entry, and
+		 * get_known_countries() picks it up from there. Nothing else is
+		 * needed: the panel, the source registry and the copy fields all key
+		 * off the country code.
+		 */
+		KDNA_WH_Sources::set_source_type( $code, 'csv' );
+
+		self::add_notice(
+			'success',
+			sprintf(
+				/* translators: %s: country name. */
+				__( '%s added. Record its source documents below, then import a zones CSV for it.', 'kdna-water-hardness' ),
+				KDNA_WH_Sources::country_name( $code )
+			)
+		);
+
+		self::redirect(
+			array(
+				'tab'     => 'countries',
+				'country' => $code,
 			)
 		);
 	}
