@@ -14,12 +14,15 @@ marked `verified`. Those return a real band today. The other thirty are still
 
 ## Read this before going live
 
-**Every row is marked `estimated`, and that is not a formality.**
+**The thirty rows still marked `estimated` have not been checked, and that is
+not a formality.** The thirty Barwon Water rows have been, and are marked
+`verified`.
 
-The figures were gathered from published sources through search, not read out of
-the source documents directly. The build container cannot reach the utility
-websites, so no figure here has been checked against the report it is attributed
-to. The postcode mapping is a second approximation on top of the first: supply
+The estimated figures were gathered from published sources through search, not
+read out of the source documents directly. The build container cannot reach the
+utility websites, so those figures have not been checked against the report they
+are attributed to. The postcode mapping is a second approximation on top of the
+first for those rows: supply
 zone boundaries do not follow postcode boundaries, and most utilities do not
 publish the correspondence at all.
 
